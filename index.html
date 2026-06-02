@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>凡屋客服成长手账</title>
+  <title>凡屋客服日循环记录</title>
   <style>
     :root {
       --bg: #f6f2eb;
@@ -20,6 +20,7 @@
       font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
+    html, body { max-width: 100%; overflow-x: hidden; }
     body { margin: 0; background: var(--bg); color: var(--text); }
     button, input, textarea, select { font: inherit; }
     button { border: 0; border-radius: 8px; min-height: 40px; padding: 10px 14px; background: var(--text); color: #fff; cursor: pointer; }
@@ -28,17 +29,22 @@
     button.danger { background: #f7e0dc; color: var(--danger); }
     input, textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--text); min-height: 40px; }
     textarea { min-height: 92px; resize: vertical; line-height: 1.7; }
-    .app { max-width: 1040px; margin: 0 auto; padding: 16px; padding-bottom: 34px; }
+    .app { width: 100%; max-width: 1040px; margin: 0 auto; padding: 16px; padding-bottom: 34px; overflow-x: hidden; }
     .top { position: sticky; top: 0; z-index: 10; background: rgba(246,242,235,.96); backdrop-filter: blur(8px); padding: 14px 0 8px; border-bottom: 1px solid var(--line); }
     .hero { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
     .eyebrow { margin: 0 0 3px; color: var(--muted); font-size: 12px; }
     h1 { margin: 0; font-size: 25px; letter-spacing: 0; }
-    .date-pill { align-self: start; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; color: var(--muted); white-space: nowrap; }
-    .staff-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .quick-meta { display: grid; grid-template-columns: minmax(0, 1fr) minmax(100px, 150px); gap: 10px; margin-top: 12px; align-items: center; }
+    .date-pill { width: 100%; min-height: 40px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; color: var(--muted); white-space: nowrap; text-align: left; }
+    .date-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
     .tabs { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; }
     .tabs::-webkit-scrollbar { display: none; }
     .tab { flex: 0 0 auto; min-height: 38px; border: 1px solid var(--line); background: var(--paper); color: var(--muted); border-radius: 999px; padding: 8px 13px; }
     .tab.active { background: var(--text); color: #fff; border-color: var(--text); }
+    .sticky-status { display: grid; gap: 7px; padding: 9px 0 0; }
+    .sticky-status-text { font-size: 13px; color: var(--muted); }
+    .sticky-progress { height: 7px; background: #eee6da; border-radius: 999px; overflow: hidden; }
+    .sticky-progress span { display: block; height: 100%; width: 0; background: var(--brand); border-radius: 999px; transition: width .2s ease; }
     .view { display: none; padding-top: 14px; }
     .view.active { display: block; }
     .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 12px; }
@@ -62,6 +68,7 @@
     .field label { color: var(--muted); font-size: 13px; }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
     .actions button { flex: 1; min-width: 145px; }
+    .view > .actions { position: sticky; bottom: 0; z-index: 8; background: rgba(246,242,235,.96); backdrop-filter: blur(8px); border-top: 1px solid var(--line); padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); margin-bottom: -1px; }
     .note-type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .image-preview { display: flex; gap: 8px; overflow-x: auto; margin-top: 8px; }
     .image-preview img { width: 78px; height: 78px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
@@ -99,13 +106,19 @@
     .trophy { color: var(--gold); font-weight: 800; }
     .stars { letter-spacing: 2px; color: var(--gold); }
     .hidden { display: none !important; }
+    #morningProgressText, #eveningProgressText,
+    #export-morning > .progress-line, #export-evening > .progress-line { display: none; }
     @media (max-width: 720px) {
-      .app { padding: 12px; }
+      .app { padding: 12px; padding-bottom: 78px; }
       .hero { grid-template-columns: 1fr; }
-      .date-pill { justify-self: start; }
-      .staff-row, .field-grid, .calendar-pair, .note-type-grid, .record-row { grid-template-columns: 1fr; }
+      .quick-meta { grid-template-columns: minmax(0, 1fr) minmax(88px, 112px); }
+      .field-grid, .calendar-pair, .note-type-grid, .record-row { grid-template-columns: 1fr; }
       .task { grid-template-columns: auto 1fr; }
       .task .tag { grid-column: 2 / -1; justify-self: start; }
+      .copy-item { grid-template-columns: 1fr; }
+      .copy-tools { justify-items: stretch; }
+      .copy-actions { justify-content: flex-start; }
+      .copy-main { justify-self: end; }
     }
   </style>
 </head>
@@ -114,33 +127,37 @@
     <div class="top">
       <header class="hero">
         <div>
-          <p class="eyebrow">凡屋实木家具 · 新客服成长记录</p>
-          <h1>凡屋客服成长手账</h1>
+          <p class="eyebrow">凡屋实木家具 · 新客服日循环</p>
+          <h1>凡屋客服日循环记录</h1>
         </div>
-        <div class="date-pill" id="datePill"></div>
       </header>
-      <div class="staff-row">
+      <div class="quick-meta">
+        <button class="date-pill" id="datePill" type="button"></button>
         <select id="staffName">
           <option value="小可">小可</option>
           <option value="叶子">叶子</option>
         </select>
-        <input type="date" id="workDate" />
+        <input class="date-hidden" type="date" id="workDate" />
       </div>
       <nav class="tabs" id="tabs">
         <button class="tab active" data-view="morning">早安开工</button>
         <button class="tab" data-view="evening">安心收工</button>
-        <button class="tab" data-view="notes">灵感小记</button>
+        <button class="tab" data-view="notes">工作随手记</button>
         <button class="tab" data-view="archive">成长档案</button>
         <button class="tab" data-view="growth">毕业进度</button>
       </nav>
+      <div class="sticky-status" id="stickyStatus">
+        <div class="sticky-status-text" id="stickyStatusText"></div>
+        <div class="sticky-progress"><span id="stickyProgress"></span></div>
+      </div>
     </div>
 
     <main>
       <section class="view active" id="view-morning">
         <div class="panel" id="export-morning">
           <h2>早安开工</h2>
-          <p class="hint">请在 9:30 前完成，并截图发送到飞书群。今天先把昨天遗留的事接住，再开始新的接待。</p>
-          <div class="notice warn">9:30 前提醒：完成开工清单后，点击下方“导出开工图”，保存后发到飞书群。</div>
+          <p class="hint">请在 9:30 前完成，并导出图片上传到飞书。今天先把昨天遗留的事接住，再开始新的接待。</p>
+          <div class="notice warn">9:30 前提醒：完成开工清单后，点击下方“导出开工图”，保存后上传到飞书。</div>
           <div id="morningProgressText"></div>
           <div class="progress-line"><span id="morningProgress"></span></div>
           <div class="task-list" id="morningTasks"></div>
@@ -164,8 +181,8 @@
       <section class="view" id="view-evening">
         <div class="panel" id="export-evening">
           <h2>安心收工</h2>
-          <p class="hint">请在 22:30 前完成，并截图发送到飞书群。把今天没落地的事交代清楚，明天开工才能不乱。</p>
-          <div class="notice warn">22:30 前提醒：完成收工清单后，点击下方“导出收工图”，保存后发到飞书群。</div>
+          <p class="hint">请在 22:30 前完成，并导出图片上传到飞书。把今天没落地的事交代清楚，明天开工才能不乱。</p>
+          <div class="notice warn">22:30 前提醒：完成收工清单后，点击下方“导出收工图”，保存后上传到飞书。</div>
           <div id="eveningProgressText"></div>
           <div class="progress-line"><span id="eveningProgress"></span></div>
           <div class="task-list" id="eveningTasks"></div>
@@ -188,8 +205,8 @@
 
       <section class="view" id="view-notes">
         <div class="panel">
-          <h2>灵感小记</h2>
-          <p class="hint">工作中想到的建议、解决过的困难、成交高光，都可以随手记。图片只保存在当前浏览器里。</p>
+          <h2>工作随手记</h2>
+          <p class="hint">工作中遇到的待发货、建议、困难、解决方案和成交高光，都可以随手记录。图片只保存在当前浏览器里。</p>
           <div class="field-grid">
             <div class="field">
               <label>记录类型</label>
@@ -294,6 +311,7 @@
   <script>
     const STORE = 'fanwu_growth_journal_v1';
     const noteTypes = [
+      ['batchShip', '※批量待发货', '例：今天有一批订单待发货，记录订单范围、需要确认的库存/物流节点，以及需要同步给谁。'],
       ['sop', 'SOP 建议', '例：今天遇到顾客反复问发货时间，建议把不同品类发货周期和异常处理话术整理成一张速查表。'],
       ['policy', '政策建议', '例：优惠叠加边界容易问错，建议明确哪些情况能补差价，哪些情况必须走售后。'],
       ['boundary', '权限边界', '例：顾客要求特殊定制时，新人不确定能否承诺，建议给一份“可答/不可答/需升级”的边界表。'],
@@ -323,13 +341,18 @@
       ['unresolved', '今日未落实问题已填写', '会自动显示到第二天早安开工', '明日承接']
     ];
     const $ = id => document.getElementById(id);
-    const today = () => new Date().toISOString().slice(0, 10);
+    const today = () => {
+      const d = new Date();
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      return d.toISOString().slice(0, 10);
+    };
     const fmtDate = d => new Date(d + 'T00:00:00');
     let state = loadState();
     let pendingImages = [];
     let copySnippets = {};
     let openCopyTypes = new Set();
     let editingNoteKey = '';
+    let currentView = 'morning';
 
     function loadState() {
       try {
@@ -350,6 +373,7 @@
     }
     function activeStaff() { return $('staffName').value; }
     function setView(view) {
+      currentView = view;
       document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
       document.querySelectorAll('.view').forEach(section => section.classList.toggle('active', section.id === 'view-' + view));
       renderAll();
@@ -659,7 +683,7 @@
       round(ctx, 35, 35, 830, 850, 18, '#fffaf2');
       ctx.fillStyle = '#241f1a'; ctx.font = 'bold 34px Microsoft YaHei';
       const title = kind === 'morning' ? '早安开工' : kind === 'evening' ? '安心收工' : '毕业进度';
-      ctx.fillText('凡屋客服成长手账｜' + title, 62, 92);
+      ctx.fillText('凡屋客服日循环记录｜' + title, 62, 92);
       ctx.font = '18px Microsoft YaHei'; ctx.fillStyle = '#756b60';
       ctx.fillText(`${$('workDate').value} · ${activeStaff()}`, 62, 124);
       let y = 172;
@@ -679,7 +703,7 @@
         const extra = kind === 'morning' ? $('morningFollow').value : '售后交接：' + $('afterSaleHandoff').value + '\n未落实：' + $('eveningUnresolved').value;
         ctx.font = '18px Microsoft YaHei'; ctx.fillStyle = '#756b60'; y = wrap(ctx, extra || '无补充记录', 62, y, 760, 30);
       }
-      ctx.font = '16px Microsoft YaHei'; ctx.fillStyle = '#756b60'; ctx.fillText('保存后发送到飞书群', 62, 850);
+      ctx.font = '16px Microsoft YaHei'; ctx.fillStyle = '#756b60'; ctx.fillText('导出后上传到飞书', 62, 850);
       download(canvas, `${title}-${$('workDate').value}.jpg`);
     }
     function round(ctx, x, y, w, h, r, fill) {
@@ -700,6 +724,41 @@
       const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', .92); a.download = name; a.click();
     }
     function escapeHtml(text) { return String(text || '').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+    function graduationDoneCount() {
+      const salesDone = state.growth.sales.length >= 2;
+      const types = new Set(state.growth.upsell.map(x => x.type));
+      const upsellDone = ['加购单品','新品成交','旧品清仓'].every(t => types.has(t));
+      const showroomDone = state.growth.showroom.length >= 5;
+      return [salesDone, upsellDone, showroomDone].filter(Boolean).length;
+    }
+    function updateStickyStatus() {
+      let text = '';
+      let value = 0;
+      if (currentView === 'morning') {
+        const p = percent('morning', morningTasks);
+        text = `早安开工｜${p.count} / ${p.total}｜${p.value}% 完成`;
+        value = p.value;
+      } else if (currentView === 'evening') {
+        const p = percent('evening', eveningTasks);
+        text = `安心收工｜${p.count} / ${p.total}｜${p.value}% 完成`;
+        value = p.value;
+      } else if (currentView === 'notes') {
+        const count = record().notes.length;
+        text = `工作随手记｜今日 ${count} 条`;
+        value = Math.min(100, count * 20);
+      } else if (currentView === 'archive') {
+        const morning = attendanceCount('morning');
+        const evening = attendanceCount('evening');
+        text = `成长档案｜开工 ${morning}/14｜收工 ${evening}/14`;
+        value = Math.min(100, Math.round((morning + evening) / 28 * 100));
+      } else {
+        const done = graduationDoneCount();
+        text = `毕业进度｜${done} / 3`;
+        value = Math.round(done / 3 * 100);
+      }
+      $('stickyStatusText').textContent = text;
+      $('stickyProgress').style.width = value + '%';
+    }
     function renderAll() {
       $('datePill').textContent = new Date($('workDate').value + 'T00:00:00').toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
       $('morningYesterday').value = state.records[prevDate($('workDate').value)]?.evening?.unresolved || '昨天没有记录未落实问题。';
@@ -707,6 +766,7 @@
       renderNotes();
       renderArchive();
       renderGrowth();
+      updateStickyStatus();
     }
 
     $('workDate').value = today();
@@ -716,6 +776,10 @@
     renderNoteType();
     loadDate(today());
     $('tabs').onclick = e => { if (e.target.dataset.view) setView(e.target.dataset.view); };
+    $('datePill').onclick = () => {
+      if ($('workDate').showPicker) $('workDate').showPicker();
+      else $('workDate').click();
+    };
     $('staffName').onchange = () => { state.staff = activeStaff(); saveState(); renderAll(); };
     $('workDate').onchange = e => loadDate(e.target.value);
     ['morningFollow','afterSaleHandoff','eveningUnresolved'].forEach(id => $(id).oninput = saveInputs);
