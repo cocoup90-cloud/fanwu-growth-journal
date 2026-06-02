@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>凡屋客服成长手账</title>
+  <style>
+    :root {
+      --bg: #f6f2eb;
+      --paper: #fffaf2;
+      --card: #fff;
+      --text: #241f1a;
+      --muted: #756b60;
+      --line: #ded2c4;
+      --brand: #2f6f65;
+      --soft: #e7f1ed;
+      --gold: #b87920;
+      --danger: #b24034;
+      --shadow: 0 16px 38px rgba(45, 36, 26, .1);
+      font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    button, input, textarea, select { font: inherit; }
+    button { border: 0; border-radius: 8px; min-height: 40px; padding: 10px 14px; background: var(--text); color: #fff; cursor: pointer; }
+    button.secondary { background: var(--soft); color: var(--brand); }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    button.danger { background: #f7e0dc; color: var(--danger); }
+    input, textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: #fff; color: var(--text); min-height: 40px; }
+    textarea { min-height: 92px; resize: vertical; line-height: 1.7; }
+    .app { max-width: 1040px; margin: 0 auto; padding: 16px; padding-bottom: 34px; }
+    .top { position: sticky; top: 0; z-index: 10; background: rgba(246,242,235,.96); backdrop-filter: blur(8px); padding: 14px 0 8px; border-bottom: 1px solid var(--line); }
+    .hero { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+    .eyebrow { margin: 0 0 3px; color: var(--muted); font-size: 12px; }
+    h1 { margin: 0; font-size: 25px; letter-spacing: 0; }
+    .date-pill { align-self: start; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+    .staff-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .tabs { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { flex: 0 0 auto; min-height: 38px; border: 1px solid var(--line); background: var(--paper); color: var(--muted); border-radius: 999px; padding: 8px 13px; }
+    .tab.active { background: var(--text); color: #fff; border-color: var(--text); }
+    .view { display: none; padding-top: 14px; }
+    .view.active { display: block; }
+    .panel { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 14px; margin-bottom: 12px; }
+    .panel h2 { margin: 0 0 8px; font-size: 20px; }
+    .panel h3 { margin: 0 0 8px; font-size: 17px; }
+    .hint { color: var(--muted); line-height: 1.7; margin: 0 0 12px; }
+    .notice { border-left: 4px solid var(--brand); background: var(--soft); color: #254a42; border-radius: 7px; padding: 11px 12px; line-height: 1.65; margin-bottom: 12px; }
+    .warn { border-left-color: var(--gold); background: #fff2d9; color: #65400f; }
+    .progress-line { height: 8px; background: #eee6da; border-radius: 999px; overflow: hidden; margin-top: 8px; }
+    .progress-line span { display: block; height: 100%; width: 0; background: var(--brand); border-radius: 999px; transition: width .2s ease; }
+    .task-list { display: grid; gap: 8px; }
+    .task { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 11px; }
+    .task input { width: 21px; min-height: 21px; accent-color: var(--brand); }
+    .task strong { display: block; margin-bottom: 3px; }
+    .task small { color: var(--muted); line-height: 1.5; }
+    .tag { background: #f0ece4; color: var(--muted); border-radius: 999px; padding: 4px 8px; font-size: 12px; white-space: nowrap; }
+    .tag.good { background: var(--soft); color: var(--brand); }
+    .tag.gold { background: #fff0d2; color: var(--gold); }
+    .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 6px; }
+    .field label { color: var(--muted); font-size: 13px; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .actions button { flex: 1; min-width: 145px; }
+    .note-type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .image-preview { display: flex; gap: 8px; overflow-x: auto; margin-top: 8px; }
+    .image-preview img { width: 78px; height: 78px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+    .note-card, .history-card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 11px; display: grid; gap: 6px; }
+    .note-card p, .history-card p { margin: 0; color: var(--muted); line-height: 1.65; white-space: pre-wrap; }
+    .calendar-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+    .day, .dow { text-align: center; font-size: 12px; color: var(--muted); }
+    .day { min-height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding-top: 8px; }
+    .day.done { background: var(--soft); color: var(--brand); font-weight: 700; }
+    .bar-row { display: grid; grid-template-columns: 94px 1fr auto; gap: 8px; align-items: center; margin: 9px 0; }
+    .bar { height: 12px; background: #eee6da; border-radius: 999px; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
+    details.copy-box { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-top: 8px; }
+    summary { cursor: pointer; font-weight: 700; }
+    .copy-content { margin-top: 10px; white-space: pre-wrap; color: var(--muted); line-height: 1.7; }
+    .copy-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; background: #fffdf8; padding: 12px; margin-top: 8px; }
+    .copy-item strong { display: block; margin-bottom: 5px; }
+    .copy-item p { margin: 0; color: var(--muted); line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+    .copy-tools { display: grid; align-content: space-between; justify-items: end; gap: 8px; }
+    .copy-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .icon-btn { width: 34px; min-height: 34px; padding: 0; display: grid; place-items: center; background: #f7f4ee; color: var(--text); border: 1px solid var(--line); }
+    .icon-btn.danger { background: #f7e0dc; color: var(--danger); border-color: #efc8c1; }
+    .copy-icon { position: relative; width: 16px; height: 16px; display: inline-block; }
+    .copy-icon::before, .copy-icon::after { content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid currentColor; border-radius: 3px; background: #fff; }
+    .copy-icon::before { left: 1px; top: 5px; }
+    .copy-icon::after { left: 5px; top: 1px; background: var(--soft); }
+    .copy-main { align-self: end; }
+    .inline-edit { display: grid; gap: 8px; margin-top: 6px; }
+    .inline-edit textarea { min-height: 90px; color: var(--text); background: #fff; caret-color: var(--text); user-select: text; pointer-events: auto; }
+    .inline-edit-actions { display: flex; gap: 8px; justify-content: flex-start; }
+    .growth-grid { display: grid; gap: 10px; }
+    .record-row { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 8px; align-items: end; margin-top: 8px; }
+    .record-list { display: grid; gap: 8px; margin-top: 10px; }
+    .trophy { color: var(--gold); font-weight: 800; }
+    .stars { letter-spacing: 2px; color: var(--gold); }
+    .hidden { display: none !important; }
+    @media (max-width: 720px) {
+      .app { padding: 12px; }
+      .hero { grid-template-columns: 1fr; }
+      .date-pill { justify-self: start; }
+      .staff-row, .field-grid, .calendar-pair, .note-type-grid, .record-row { grid-template-columns: 1fr; }
+      .task { grid-template-columns: auto 1fr; }
+      .task .tag { grid-column: 2 / -1; justify-self: start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="top">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">凡屋实木家具 · 新客服成长记录</p>
+          <h1>凡屋客服成长手账</h1>
+        </div>
+        <div class="date-pill" id="datePill"></div>
+      </header>
+      <div class="staff-row">
+        <select id="staffName">
+          <option value="小可">小可</option>
+          <option value="叶子">叶子</option>
+        </select>
+        <input type="date" id="workDate" />
+      </div>
+      <nav class="tabs" id="tabs">
+        <button class="tab active" data-view="morning">早安开工</button>
+        <button class="tab" data-view="evening">安心收工</button>
+        <button class="tab" data-view="notes">灵感小记</button>
+        <button class="tab" data-view="archive">成长档案</button>
+        <button class="tab" data-view="growth">毕业进度</button>
+      </nav>
+    </div>
+
+    <main>
+      <section class="view active" id="view-morning">
+        <div class="panel" id="export-morning">
+          <h2>早安开工</h2>
+          <p class="hint">请在 9:30 前完成，并截图发送到飞书群。今天先把昨天遗留的事接住，再开始新的接待。</p>
+          <div class="notice warn">9:30 前提醒：完成开工清单后，点击下方“导出开工图”，保存后发到飞书群。</div>
+          <div id="morningProgressText"></div>
+          <div class="progress-line"><span id="morningProgress"></span></div>
+          <div class="task-list" id="morningTasks"></div>
+          <div class="field-grid">
+            <div class="field">
+              <label>昨日未落实问题</label>
+              <textarea id="morningYesterday" readonly></textarea>
+            </div>
+            <div class="field">
+              <label>今日跟进备注</label>
+              <textarea id="morningFollow" placeholder="例：昨晚供应链未回复的库存问题，今天 10:00 前再次确认；高意向客户先发新品搭配图，再跟进是否下单。"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="submitMorning">提交开工</button>
+          <button class="ghost" id="exportMorning">导出开工图</button>
+        </div>
+      </section>
+
+      <section class="view" id="view-evening">
+        <div class="panel" id="export-evening">
+          <h2>安心收工</h2>
+          <p class="hint">请在 22:30 前完成，并截图发送到飞书群。把今天没落地的事交代清楚，明天开工才能不乱。</p>
+          <div class="notice warn">22:30 前提醒：完成收工清单后，点击下方“导出收工图”，保存后发到飞书群。</div>
+          <div id="eveningProgressText"></div>
+          <div class="progress-line"><span id="eveningProgress"></span></div>
+          <div class="task-list" id="eveningTasks"></div>
+          <div class="field-grid">
+            <div class="field">
+              <label>售后交接内容</label>
+              <textarea id="afterSaleHandoff" placeholder="例：售后 21:30 前转来 2 个需要售前继续解释的客户，一个问换色周期，一个问补差价方案。"></textarea>
+            </div>
+            <div class="field">
+              <label>今日未落实问题</label>
+              <textarea id="eveningUnresolved" placeholder="例：1. 月见镜柜库存待供应链确认；2. 高意向客户 A 明早继续跟进；3. 餐边柜发货周期待确认。"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="submitEvening">提交收工</button>
+          <button class="ghost" id="exportEvening">导出收工图</button>
+        </div>
+      </section>
+
+      <section class="view" id="view-notes">
+        <div class="panel">
+          <h2>灵感小记</h2>
+          <p class="hint">工作中想到的建议、解决过的困难、成交高光，都可以随手记。图片只保存在当前浏览器里。</p>
+          <div class="field-grid">
+            <div class="field">
+              <label>记录类型</label>
+              <select id="noteType"></select>
+            </div>
+            <div class="field">
+              <label>截图记录</label>
+              <input type="file" id="noteImages" accept="image/*" multiple />
+            </div>
+          </div>
+          <div class="field">
+            <label>文字内容</label>
+            <textarea id="noteText"></textarea>
+          </div>
+          <div class="image-preview" id="notePreview"></div>
+          <div class="actions">
+            <button id="addNote">保存这条小记</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>今天的小记</h3>
+          <div class="record-list" id="todayNotes"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-archive">
+        <div class="panel">
+          <h2>成长档案</h2>
+          <p class="hint">上班和下班清单 100% 完成后，会自动点亮当天。分别累计满 14 天，解锁对应奖励。</p>
+          <div class="calendar-pair">
+            <div>
+              <h3>早安开工日历 <span class="tag gold" id="morningAward"></span></h3>
+              <div class="calendar" id="morningCalendar"></div>
+            </div>
+            <div>
+              <h3>安心收工日历 <span class="tag gold" id="eveningAward"></span></h3>
+              <div class="calendar" id="eveningCalendar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>随手记统计</h2>
+          <div id="noteBars"></div>
+        </div>
+        <div class="panel">
+          <h2>分类复制面板</h2>
+          <div id="copyPanels"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-growth">
+        <div class="panel" id="export-growth">
+          <h2>毕业进度</h2>
+          <p class="hint">从会回复，到会判断；从记住产品，到能帮顾客做选择。每一次认真记录，都会让你更接近独当一面的熟练客服。</p>
+          <div id="graduationStatus" class="notice"></div>
+          <div class="growth-grid">
+            <div class="panel">
+              <h3>业绩爆发</h3>
+              <p class="hint">记录两次单周销售额进入团队第 1-2 名，带教客服确认后点亮奖杯。</p>
+              <div class="record-row">
+                <input id="salesRange" placeholder="周期：6/3-6/9" />
+                <input id="salesAmount" placeholder="销售额：32000" />
+                <input id="salesRank" placeholder="排名：第1名" />
+                <input id="salesMentor" placeholder="确认人" />
+                <button id="addSales">添加</button>
+              </div>
+              <div class="record-list" id="salesList"></div>
+            </div>
+            <div class="panel">
+              <h3>连带销售</h3>
+              <p class="hint">三类都至少有 1 条记录：加购单品、新品成交、旧品清仓。</p>
+              <div class="record-row">
+                <select id="upsellType"><option>加购单品</option><option>新品成交</option><option>旧品清仓</option></select>
+                <input id="upsellUser" placeholder="淘宝用户 ID" />
+                <input id="upsellDate" type="date" />
+                <input id="upsellNote" placeholder="备注" />
+                <button id="addUpsell">添加</button>
+              </div>
+              <div class="record-list" id="upsellList"></div>
+            </div>
+            <div class="panel">
+              <h3>展厅体验</h3>
+              <p class="hint">成功引导 5 位用户从线上到展厅，并记录产品和好感星级。</p>
+              <div class="record-row">
+                <input id="showroomDate" type="date" />
+                <input id="showroomUser" placeholder="淘宝用户 ID" />
+                <input id="showroomProducts" placeholder="看过的产品" />
+                <select id="showroomStars"><option>5星</option><option>4星</option><option>3星</option></select>
+                <button id="addShowroom">添加</button>
+              </div>
+              <div class="record-list" id="showroomList"></div>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="ghost" id="exportGrowth">导出毕业进度图</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const STORE = 'fanwu_growth_journal_v1';
+    const noteTypes = [
+      ['sop', 'SOP 建议', '例：今天遇到顾客反复问发货时间，建议把不同品类发货周期和异常处理话术整理成一张速查表。'],
+      ['policy', '政策建议', '例：优惠叠加边界容易问错，建议明确哪些情况能补差价，哪些情况必须走售后。'],
+      ['boundary', '权限边界', '例：顾客要求特殊定制时，新人不确定能否承诺，建议给一份“可答/不可答/需升级”的边界表。'],
+      ['tool', '流程工具', '例：建议把常见产品按适合场景和不适合场景做成新人速查表。'],
+      ['hard', '困难场景', '例：顾客同时纠结尺寸和价格，我先确认空间，再给两个价格梯度方案。'],
+      ['solution', '解决方案', '例：遇到库存不确定时，先安抚顾客并承诺确认时间，再同步供应链。'],
+      ['highlight', '成交高光', '例：通过补充搭配建议，让顾客从单买餐桌变成餐桌加餐边柜一起下单。'],
+      ['goal', '待改进目标', '例：明天每次推荐前先确认使用空间、预算范围、尺寸限制。'],
+      ['feedback', '用户反馈', '例：用户反馈月见镜柜图片看不清内部结构，建议补一张开门细节图。']
+    ];
+    const morningTasks = [
+      ['online', '准时上线', '确认千牛、飞书、产品资料都可用', '刚需'],
+      ['night', '30 分钟内处理夜间积压咨询', '优先处理高意向、催回复、未付款客户', '9:30前'],
+      ['activity', '查看今日活动与发货提醒', '优惠、库存、发货周期、异常公告', '刚需'],
+      ['yesterday', '查看昨日未落实问题', '从昨晚收工记录自动带入', '承接'],
+      ['follow', '对昨日未落实问题做初步跟进', '供应链咨询、未下单跟踪、售后转接', '跟进'],
+      ['focus', '确认今日重点产品 / 新品 / SKU', '知道今天优先推荐和容易问错的点', '产品'],
+      ['ask', '不确定问题先标记并同步带教客服', '不乱答，不承诺超出权限的内容', '边界']
+    ];
+    const eveningTasks = [
+      ['mark', '今日待跟进客户已标记', '高意向、未付款、需要补信息的客户', '刚需'],
+      ['handoff', '售后下班前交接内容已接收', '售后比售前早下班，转接内容要接住', '交接'],
+      ['afterSale', '需要售前继续处理的问题已记录', '换色、补差价、发货解释、推荐替代款', '交接'],
+      ['supply', '供应链 / 库存 / 发货未确认问题已整理', '明天开工优先继续确认', '未落实'],
+      ['unpaid', '未下单高意向客户已记录', '第二天继续跟进，不丢线索', '跟进'],
+      ['review', '今日成交或失败原因简单复盘', '记录一个值得复用或改进的点', '复盘'],
+      ['unresolved', '今日未落实问题已填写', '会自动显示到第二天早安开工', '明日承接']
+    ];
+    const $ = id => document.getElementById(id);
+    const today = () => new Date().toISOString().slice(0, 10);
+    const fmtDate = d => new Date(d + 'T00:00:00');
+    let state = loadState();
+    let pendingImages = [];
+    let copySnippets = {};
+    let openCopyTypes = new Set();
+    let editingNoteKey = '';
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(STORE)) || { staff: '小可', records: {}, growth: { sales: [], upsell: [], showroom: [] } };
+      } catch {
+        return { staff: '小可', records: {}, growth: { sales: [], upsell: [], showroom: [] } };
+      }
+    }
+    function saveState() { localStorage.setItem(STORE, JSON.stringify(state)); }
+    function record(date = $('workDate').value) {
+      if (!state.records[date]) state.records[date] = { morning: { done: {}, follow: '', submitted: false }, evening: { done: {}, handoff: '', unresolved: '', submitted: false }, notes: [] };
+      return state.records[date];
+    }
+    function prevDate(date) {
+      const d = fmtDate(date);
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().slice(0, 10);
+    }
+    function activeStaff() { return $('staffName').value; }
+    function setView(view) {
+      document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
+      document.querySelectorAll('.view').forEach(section => section.classList.toggle('active', section.id === 'view-' + view));
+      renderAll();
+    }
+    function renderTaskList(kind, tasks, target) {
+      const rec = record();
+      const done = rec[kind].done || {};
+      $(target).innerHTML = tasks.map(([id, title, desc, tag]) => `
+        <label class="task">
+          <input type="checkbox" data-${kind}="${id}" ${done[id] ? 'checked' : ''}>
+          <span><strong>${title}</strong><small>${desc}</small></span>
+          <span class="tag">${tag}</span>
+        </label>
+      `).join('');
+      document.querySelectorAll('[data-' + kind + ']').forEach(input => input.onchange = () => {
+        record()[kind].done[input.dataset[kind]] = input.checked;
+        saveState();
+        renderAll();
+      });
+    }
+    function percent(kind, tasks) {
+      const done = record()[kind].done || {};
+      const count = tasks.filter(([id]) => done[id]).length;
+      return { count, total: tasks.length, value: Math.round(count / tasks.length * 100) };
+    }
+    function loadDate(date) {
+      $('workDate').value = date;
+      const rec = record(date);
+      $('morningFollow').value = rec.morning.follow || '';
+      $('afterSaleHandoff').value = rec.evening.handoff || '';
+      $('eveningUnresolved').value = rec.evening.unresolved || '';
+      $('morningYesterday').value = (state.records[prevDate(date)]?.evening?.unresolved || '昨天没有记录未落实问题。');
+      renderAll();
+    }
+    function saveInputs() {
+      const rec = record();
+      rec.morning.follow = $('morningFollow').value.trim();
+      rec.evening.handoff = $('afterSaleHandoff').value.trim();
+      rec.evening.unresolved = $('eveningUnresolved').value.trim();
+      state.staff = activeStaff();
+      saveState();
+    }
+    function submitKind(kind, tasks) {
+      saveInputs();
+      const p = percent(kind, tasks);
+      if (p.value < 100 && !confirm('当前完成度不是 100%，仍然提交吗？')) return;
+      record()[kind].submitted = true;
+      record()[kind].submittedAt = new Date().toISOString();
+      saveState();
+      renderAll();
+      alert(kind === 'morning' ? '早安开工已提交。' : '安心收工已提交。');
+    }
+    function renderMorningEvening() {
+      renderTaskList('morning', morningTasks, 'morningTasks');
+      renderTaskList('evening', eveningTasks, 'eveningTasks');
+      const m = percent('morning', morningTasks);
+      const e = percent('evening', eveningTasks);
+      $('morningProgressText').innerHTML = `<strong>${m.count} / ${m.total}</strong> · ${m.value}% 完成`;
+      $('eveningProgressText').innerHTML = `<strong>${e.count} / ${e.total}</strong> · ${e.value}% 完成`;
+      $('morningProgress').style.width = m.value + '%';
+      $('eveningProgress').style.width = e.value + '%';
+    }
+    async function handleImages(files) {
+      pendingImages = [];
+      for (const file of [...files].slice(0, 3)) pendingImages.push(await readAsDataUrl(file));
+      $('notePreview').innerHTML = pendingImages.map(src => `<img src="${src}" alt="截图">`).join('');
+    }
+    function readAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    function renderNoteType() {
+      $('noteType').innerHTML = noteTypes.map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
+      $('noteText').placeholder = noteTypes[0][2];
+    }
+    function addNote() {
+      const text = $('noteText').value.trim();
+      if (!text && !pendingImages.length) return alert('请先填写文字或上传截图。');
+      const type = $('noteType').value;
+      const label = noteTypes.find(n => n[0] === type)[1];
+      const createdAt = new Date().toISOString();
+      record().notes.push({ id: Date.now(), staff: activeStaff(), type, label, text, images: pendingImages, createdAt, order: new Date(createdAt).getTime() });
+      $('noteText').value = '';
+      $('noteImages').value = '';
+      pendingImages = [];
+      $('notePreview').innerHTML = '';
+      saveState();
+      renderAll();
+    }
+    function renderNotes() {
+      const notes = record().notes || [];
+      $('todayNotes').innerHTML = notes.map(n => `
+        <div class="note-card">
+          <strong>${n.label}</strong>
+          <p>${escapeHtml(n.text || '仅上传截图')}</p>
+          <div class="image-preview">${(n.images || []).map(src => `<img src="${src}" alt="截图">`).join('')}</div>
+        </div>
+      `).join('') || '<p class="hint">今天还没有随手记。</p>';
+    }
+    function monthDays() {
+      const current = fmtDate($('workDate').value);
+      const y = current.getFullYear();
+      const m = current.getMonth();
+      const first = new Date(y, m, 1);
+      const last = new Date(y, m + 1, 0);
+      const days = ['日','一','二','三','四','五','六'].map(d => `<div class="dow">${d}</div>`);
+      for (let i = 0; i < first.getDay(); i++) days.push('<div></div>');
+      for (let d = 1; d <= last.getDate(); d++) {
+        const date = y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        days.push({ date, day: d });
+      }
+      return days;
+    }
+    function renderCalendar(kind, target) {
+      const days = monthDays().map(cell => {
+        if (typeof cell === 'string') return cell;
+        const rec = state.records[cell.date];
+        const tasks = kind === 'morning' ? morningTasks : eveningTasks;
+        const done = rec ? tasks.every(([id]) => rec[kind]?.done?.[id]) : false;
+        return `<div class="day ${done ? 'done' : ''}">${cell.day}</div>`;
+      });
+      $(target).innerHTML = days.join('');
+    }
+    function attendanceCount(kind) {
+      const tasks = kind === 'morning' ? morningTasks : eveningTasks;
+      return Object.values(state.records).filter(rec => tasks.every(([id]) => rec[kind]?.done?.[id])).length;
+    }
+    function ensureNoteMeta() {
+      let changed = false;
+      Object.entries(state.records).forEach(([date, rec]) => {
+        (rec.notes || []).forEach((note, index) => {
+          if (!note.id) {
+            note.id = Date.now() + '-' + date + '-' + index;
+            changed = true;
+          }
+          if (typeof note.order !== 'number') {
+            note.order = new Date(note.createdAt || (date + 'T00:00:00')).getTime() + index;
+            changed = true;
+          }
+        });
+      });
+      if (changed) saveState();
+    }
+    function allNotes() {
+      ensureNoteMeta();
+      return Object.entries(state.records)
+        .flatMap(([date, rec]) => (rec.notes || []).map(note => ({ ...note, date })))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+    }
+    function renderArchive() {
+      renderCalendar('morning', 'morningCalendar');
+      renderCalendar('evening', 'eveningCalendar');
+      const mc = attendanceCount('morning');
+      const ec = attendanceCount('evening');
+      $('morningAward').textContent = mc >= 14 ? '上班全勤奖已解锁' : `${mc}/14`;
+      $('eveningAward').textContent = ec >= 14 ? '完美收工奖已解锁' : `${ec}/14`;
+      const notes = allNotes();
+      const counts = Object.fromEntries(noteTypes.map(([id]) => [id, 0]));
+      notes.forEach(n => counts[n.type] = (counts[n.type] || 0) + 1);
+      const max = Math.max(1, ...Object.values(counts));
+      $('noteBars').innerHTML = noteTypes.map(([id, label]) => `
+        <div class="bar-row"><span>${label}</span><div class="bar"><span style="width:${counts[id] / max * 100}%"></span></div><b>${counts[id]}</b></div>
+      `).join('');
+      copySnippets = {};
+      $('copyPanels').innerHTML = noteTypes.map(([id, label]) => {
+        const rows = notes.filter(n => n.type === id);
+        const content = rows.map((n, index) => {
+          const text = `${n.date}｜${n.staff || ''}\n${n.text || '仅上传截图'}`;
+          const key = id + '-' + index;
+          const noteKey = n.date + '|' + n.id;
+          copySnippets[key] = text;
+          const isEditing = editingNoteKey === noteKey;
+          return `<div class="copy-item">
+            <div>
+              <strong>${n.date}｜${escapeHtml(n.staff || '')}</strong>
+              ${isEditing ? `
+                <div class="inline-edit">
+                  <textarea data-edit-text="${noteKey}">${escapeHtml(n.text || '')}</textarea>
+                  <div class="inline-edit-actions">
+                    <button class="secondary" data-save-note="${noteKey}">保存</button>
+                    <button class="ghost" data-cancel-edit="1">取消</button>
+                  </div>
+                </div>
+              ` : `<p data-edit-note="${noteKey}" title="点击编辑">${escapeHtml(n.text || '仅上传截图')}</p>`}
+            </div>
+            <div class="copy-tools">
+              <div class="copy-actions">
+                <button class="icon-btn" title="上移" data-move-note="${noteKey}" data-move-dir="-1">▲</button>
+                <button class="icon-btn" title="下移" data-move-note="${noteKey}" data-move-dir="1">▼</button>
+                <button class="icon-btn" title="编辑" data-edit-note="${noteKey}">✎</button>
+                <button class="icon-btn danger" title="删除" data-delete-note="${noteKey}">删</button>
+              </div>
+              <button class="icon-btn copy-main" title="复制" data-copy-key="${key}"><span class="copy-icon"></span></button>
+            </div>
+          </div>`;
+        }).join('') || '<div class="copy-content">暂无内容</div>';
+        return `<details class="copy-box" data-copy-box="${id}" ${openCopyTypes.has(id) ? 'open' : ''}><summary>${label} (${rows.length})</summary>${content}</details>`;
+      }).join('');
+      document.querySelectorAll('[data-copy-box]').forEach(box => box.ontoggle = () => {
+        if (box.open) openCopyTypes.add(box.dataset.copyBox);
+        else openCopyTypes.delete(box.dataset.copyBox);
+      });
+      document.querySelectorAll('[data-copy-key]').forEach(btn => btn.onclick = e => { e.stopPropagation(); copyText(copySnippets[btn.dataset.copyKey]); });
+      document.querySelectorAll('[data-move-note]').forEach(btn => btn.onclick = e => { e.stopPropagation(); moveNote(btn.dataset.moveNote, Number(btn.dataset.moveDir)); });
+      document.querySelectorAll('[data-edit-note]').forEach(btn => btn.onclick = e => { e.stopPropagation(); editNote(btn.dataset.editNote); });
+      document.querySelectorAll('[data-save-note]').forEach(btn => btn.onclick = e => { e.stopPropagation(); saveInlineNote(btn.dataset.saveNote); });
+      document.querySelectorAll('[data-cancel-edit]').forEach(btn => btn.onclick = e => { e.stopPropagation(); editingNoteKey = ''; renderAll(); });
+      document.querySelectorAll('[data-delete-note]').forEach(btn => btn.onclick = e => { e.stopPropagation(); deleteNote(btn.dataset.deleteNote); });
+      document.querySelectorAll('[data-edit-text]').forEach(input => {
+        input.onclick = e => e.stopPropagation();
+        input.onkeydown = e => e.stopPropagation();
+        input.oninput = e => e.stopPropagation();
+        input.onpaste = e => e.stopPropagation();
+      });
+    }
+    function copyText(text) {
+      navigator.clipboard.writeText(text || '暂无内容');
+      alert('已复制。');
+    }
+    function findStoredNote(noteKey) {
+      const [date, id] = noteKey.split('|');
+      const list = state.records[date]?.notes || [];
+      const index = list.findIndex(note => String(note.id) === String(id));
+      return { date, list, index, note: list[index] };
+    }
+    function moveNote(noteKey, direction) {
+      const found = findStoredNote(noteKey);
+      if (!found.note) return;
+      const sameType = allNotes().filter(note => note.type === found.note.type);
+      const currentIndex = sameType.findIndex(note => note.date === found.date && String(note.id) === String(found.note.id));
+      const target = sameType[currentIndex + direction];
+      if (!target) return;
+      const targetFound = findStoredNote(target.date + '|' + target.id);
+      if (!targetFound.note) return;
+      const currentOrder = found.note.order;
+      found.note.order = targetFound.note.order;
+      targetFound.note.order = currentOrder;
+      saveState();
+      renderAll();
+    }
+    function editNote(noteKey) {
+      const found = findStoredNote(noteKey);
+      if (!found.note) return;
+      editingNoteKey = noteKey;
+      renderAll();
+      setTimeout(() => document.querySelector('[data-edit-text="' + CSS.escape(noteKey) + '"]')?.focus(), 0);
+    }
+    function saveInlineNote(noteKey) {
+      const found = findStoredNote(noteKey);
+      if (!found.note) return;
+      const input = document.querySelector('[data-edit-text="' + CSS.escape(noteKey) + '"]');
+      found.note.text = (input?.value || '').trim();
+      editingNoteKey = '';
+      saveState();
+      renderAll();
+    }
+    function deleteNote(noteKey) {
+      const found = findStoredNote(noteKey);
+      if (!found.note) return;
+      if (!confirm('确定删除这条随手记吗？')) return;
+      found.list.splice(found.index, 1);
+      saveState();
+      renderAll();
+    }
+    function addSales() {
+      const item = { range: $('salesRange').value, amount: $('salesAmount').value, rank: $('salesRank').value, mentor: $('salesMentor').value, confirmed: true };
+      if (!item.range || !item.amount || !item.rank) return alert('请填写周期、销售额和排名。');
+      state.growth.sales.push(item);
+      ['salesRange','salesAmount','salesRank','salesMentor'].forEach(id => $(id).value = '');
+      saveState(); renderGrowth();
+    }
+    function addUpsell() {
+      const item = { type: $('upsellType').value, user: $('upsellUser').value, date: $('upsellDate').value || today(), note: $('upsellNote').value };
+      if (!item.user) return alert('请填写淘宝用户 ID。');
+      state.growth.upsell.push(item);
+      ['upsellUser','upsellNote'].forEach(id => $(id).value = '');
+      saveState(); renderGrowth();
+    }
+    function addShowroom() {
+      const item = { date: $('showroomDate').value || today(), user: $('showroomUser').value, products: $('showroomProducts').value, stars: $('showroomStars').value };
+      if (!item.user) return alert('请填写淘宝用户 ID。');
+      state.growth.showroom.push(item);
+      ['showroomUser','showroomProducts'].forEach(id => $(id).value = '');
+      saveState(); renderGrowth();
+    }
+    function renderGrowth() {
+      const salesDone = state.growth.sales.length >= 2;
+      const types = new Set(state.growth.upsell.map(x => x.type));
+      const upsellDone = ['加购单品','新品成交','旧品清仓'].every(t => types.has(t));
+      const showroomDone = state.growth.showroom.length >= 5;
+      const doneCount = [salesDone, upsellDone, showroomDone].filter(Boolean).length;
+      $('graduationStatus').innerHTML = doneCount === 3 ? '可以毕业啦：销售、连带和展厅体验都已达成。' : `毕业进度 ${doneCount}/3：继续记录，每一条都算数。`;
+      $('salesList').innerHTML = state.growth.sales.map((x, i) => `<div class="history-card"><strong>${i + 1}. ${x.range}｜${x.amount}｜${x.rank} <span class="trophy">奖杯</span></strong><p>带教确认：${x.mentor || '已确认'}</p></div>`).join('') || '<p class="hint">还没有业绩爆发记录。</p>';
+      $('upsellList').innerHTML = state.growth.upsell.map(x => `<div class="history-card"><strong>${x.date}｜${x.type}</strong><p>淘宝用户：${x.user} ${x.note || ''}</p></div>`).join('') || '<p class="hint">还没有连带销售记录。</p>';
+      $('showroomList').innerHTML = state.growth.showroom.map(x => `<div class="history-card"><strong>${x.date}｜${x.user} <span class="stars">${'★'.repeat(Number(x.stars[0] || 5))}</span></strong><p>看过产品：${x.products || '未填'}</p></div>`).join('') || '<p class="hint">还没有展厅体验记录。</p>';
+    }
+    function exportCard(kind) {
+      saveInputs();
+      const canvas = document.createElement('canvas');
+      canvas.width = 900; canvas.height = 920;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#f6f2eb'; ctx.fillRect(0,0,900,920);
+      round(ctx, 35, 35, 830, 850, 18, '#fffaf2');
+      ctx.fillStyle = '#241f1a'; ctx.font = 'bold 34px Microsoft YaHei';
+      const title = kind === 'morning' ? '早安开工' : kind === 'evening' ? '安心收工' : '毕业进度';
+      ctx.fillText('凡屋客服成长手账｜' + title, 62, 92);
+      ctx.font = '18px Microsoft YaHei'; ctx.fillStyle = '#756b60';
+      ctx.fillText(`${$('workDate').value} · ${activeStaff()}`, 62, 124);
+      let y = 172;
+      if (kind === 'growth') {
+        const lines = [
+          `业绩爆发：${state.growth.sales.length}/2`,
+          `连带销售类型：${new Set(state.growth.upsell.map(x => x.type)).size}/3`,
+          `展厅体验：${state.growth.showroom.length}/5`
+        ];
+        lines.forEach(line => { ctx.fillStyle = '#241f1a'; ctx.font = 'bold 24px Microsoft YaHei'; ctx.fillText(line, 62, y); y += 56; });
+      } else {
+        const tasks = kind === 'morning' ? morningTasks : eveningTasks;
+        const p = percent(kind, tasks);
+        ctx.font = 'bold 26px Microsoft YaHei'; ctx.fillStyle = '#2f6f65'; ctx.fillText(`完成度：${p.count}/${p.total} · ${p.value}%`, 62, y); y += 50;
+        tasks.forEach(([id, title]) => { ctx.font = '20px Microsoft YaHei'; ctx.fillStyle = '#241f1a'; ctx.fillText((record()[kind].done[id] ? '✓ ' : '□ ') + title, 62, y); y += 36; });
+        y += 18;
+        const extra = kind === 'morning' ? $('morningFollow').value : '售后交接：' + $('afterSaleHandoff').value + '\n未落实：' + $('eveningUnresolved').value;
+        ctx.font = '18px Microsoft YaHei'; ctx.fillStyle = '#756b60'; y = wrap(ctx, extra || '无补充记录', 62, y, 760, 30);
+      }
+      ctx.font = '16px Microsoft YaHei'; ctx.fillStyle = '#756b60'; ctx.fillText('保存后发送到飞书群', 62, 850);
+      download(canvas, `${title}-${$('workDate').value}.jpg`);
+    }
+    function round(ctx, x, y, w, h, r, fill) {
+      ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+    }
+    function wrap(ctx, text, x, y, max, lh) {
+      String(text).split('\n').forEach(paragraph => {
+        let line = '';
+        paragraph.split('').forEach(ch => {
+          const test = line + ch;
+          if (ctx.measureText(test).width > max && line) { ctx.fillText(line, x, y); line = ch; y += lh; } else line = test;
+        });
+        ctx.fillText(line || ' ', x, y); y += lh;
+      });
+      return y;
+    }
+    function download(canvas, name) {
+      const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', .92); a.download = name; a.click();
+    }
+    function escapeHtml(text) { return String(text || '').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+    function renderAll() {
+      $('datePill').textContent = new Date($('workDate').value + 'T00:00:00').toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
+      $('morningYesterday').value = state.records[prevDate($('workDate').value)]?.evening?.unresolved || '昨天没有记录未落实问题。';
+      renderMorningEvening();
+      renderNotes();
+      renderArchive();
+      renderGrowth();
+    }
+
+    $('workDate').value = today();
+    $('upsellDate').value = today();
+    $('showroomDate').value = today();
+    $('staffName').value = state.staff || '小可';
+    renderNoteType();
+    loadDate(today());
+    $('tabs').onclick = e => { if (e.target.dataset.view) setView(e.target.dataset.view); };
+    $('staffName').onchange = () => { state.staff = activeStaff(); saveState(); renderAll(); };
+    $('workDate').onchange = e => loadDate(e.target.value);
+    ['morningFollow','afterSaleHandoff','eveningUnresolved'].forEach(id => $(id).oninput = saveInputs);
+    $('submitMorning').onclick = () => submitKind('morning', morningTasks);
+    $('submitEvening').onclick = () => submitKind('evening', eveningTasks);
+    $('exportMorning').onclick = () => exportCard('morning');
+    $('exportEvening').onclick = () => exportCard('evening');
+    $('exportGrowth').onclick = () => exportCard('growth');
+    $('noteType').onchange = () => $('noteText').placeholder = noteTypes.find(n => n[0] === $('noteType').value)[2];
+    $('noteImages').onchange = e => handleImages(e.target.files);
+    $('addNote').onclick = addNote;
+    $('addSales').onclick = addSales;
+    $('addUpsell').onclick = addUpsell;
+    $('addShowroom').onclick = addShowroom;
+  </script>
+</body>
+</html>
