@@ -106,6 +106,18 @@
     .trophy { color: var(--gold); font-weight: 800; }
     .stars { letter-spacing: 2px; color: var(--gold); }
     .hidden { display: none !important; }
+    .date-modal { position: fixed; inset: 0; z-index: 99; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(36,31,26,.24); }
+    .date-modal.open { display: flex; }
+    .date-modal-panel { width: min(380px, 100%); background: var(--paper); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; }
+    .date-modal-head { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .date-modal-title { text-align: center; font-weight: 800; }
+    .date-nav, .date-close { min-width: 40px; padding: 8px; background: #fff; color: var(--text); border: 1px solid var(--line); }
+    .date-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+    .date-dow { text-align: center; color: var(--muted); font-size: 12px; padding: 4px 0; }
+    .date-day { min-width: 0; min-height: 42px; padding: 0; display: grid; place-items: center; background: #fff; color: var(--text); border: 1px solid var(--line); border-radius: 9px; }
+    .date-day.muted { opacity: .35; }
+    .date-day.today { border-color: var(--brand); color: var(--brand); }
+    .date-day.selected { background: var(--text); color: #fff; border-color: var(--text); }
     #morningProgressText, #eveningProgressText,
     #export-morning > .progress-line, #export-evening > .progress-line { display: none; }
     @media (max-width: 720px) {
@@ -308,6 +320,18 @@
     </main>
   </div>
 
+  <div class="date-modal" id="dateModal" aria-hidden="true">
+    <div class="date-modal-panel">
+      <div class="date-modal-head">
+        <button class="date-nav" id="prevPickerMonth" type="button">‹</button>
+        <div class="date-modal-title" id="dateModalTitle"></div>
+        <button class="date-nav" id="nextPickerMonth" type="button">›</button>
+        <button class="date-close" id="closeDateModal" type="button">关</button>
+      </div>
+      <div class="date-grid" id="dateModalGrid"></div>
+    </div>
+  </div>
+
   <script>
     const STORE = 'fanwu_growth_journal_v1';
     const noteTypes = [
@@ -347,12 +371,18 @@
       return d.toISOString().slice(0, 10);
     };
     const fmtDate = d => new Date(d + 'T00:00:00');
+    const localDateValue = d => {
+      const copy = new Date(d);
+      copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset());
+      return copy.toISOString().slice(0, 10);
+    };
     let state = loadState();
     let pendingImages = [];
     let copySnippets = {};
     let openCopyTypes = new Set();
     let editingNoteKey = '';
     let currentView = 'morning';
+    let datePickerCursor = null;
 
     function loadState() {
       try {
@@ -731,6 +761,43 @@
       const showroomDone = state.growth.showroom.length >= 5;
       return [salesDone, upsellDone, showroomDone].filter(Boolean).length;
     }
+    function openDateModal() {
+      datePickerCursor = fmtDate($('workDate').value);
+      $('dateModal').classList.add('open');
+      $('dateModal').setAttribute('aria-hidden', 'false');
+      renderDateModal();
+    }
+    function closeDateModal() {
+      $('dateModal').classList.remove('open');
+      $('dateModal').setAttribute('aria-hidden', 'true');
+    }
+    function renderDateModal() {
+      const selected = $('workDate').value;
+      const now = today();
+      const year = datePickerCursor.getFullYear();
+      const month = datePickerCursor.getMonth();
+      $('dateModalTitle').textContent = `${year}年${month + 1}月`;
+      const first = new Date(year, month, 1);
+      const start = new Date(year, month, 1 - first.getDay());
+      const dows = ['日','一','二','三','四','五','六'].map(d => `<div class="date-dow">${d}</div>`).join('');
+      const days = Array.from({ length: 42 }, (_, i) => {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        const value = localDateValue(d);
+        const classes = [
+          'date-day',
+          d.getMonth() === month ? '' : 'muted',
+          value === now ? 'today' : '',
+          value === selected ? 'selected' : ''
+        ].filter(Boolean).join(' ');
+        return `<button class="${classes}" type="button" data-pick-date="${value}">${d.getDate()}</button>`;
+      }).join('');
+      $('dateModalGrid').innerHTML = dows + days;
+    }
+    function shiftDatePickerMonth(step) {
+      datePickerCursor.setMonth(datePickerCursor.getMonth() + step);
+      renderDateModal();
+    }
     function updateStickyStatus() {
       let text = '';
       let value = 0;
@@ -776,9 +843,16 @@
     renderNoteType();
     loadDate(today());
     $('tabs').onclick = e => { if (e.target.dataset.view) setView(e.target.dataset.view); };
-    $('datePill').onclick = () => {
-      if ($('workDate').showPicker) $('workDate').showPicker();
-      else $('workDate').click();
+    $('datePill').onclick = openDateModal;
+    $('closeDateModal').onclick = closeDateModal;
+    $('prevPickerMonth').onclick = () => shiftDatePickerMonth(-1);
+    $('nextPickerMonth').onclick = () => shiftDatePickerMonth(1);
+    $('dateModal').onclick = e => {
+      if (e.target.id === 'dateModal') closeDateModal();
+      if (e.target.dataset.pickDate) {
+        loadDate(e.target.dataset.pickDate);
+        closeDateModal();
+      }
     };
     $('staffName').onchange = () => { state.staff = activeStaff(); saveState(); renderAll(); };
     $('workDate').onchange = e => loadDate(e.target.value);
