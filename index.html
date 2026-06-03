@@ -587,14 +587,14 @@
         return `<button class="thumb-btn" type="button" data-open-image="${imageKey}" title="查看大图"><img src="${src}" alt="截图缩略图"></button>`;
       }).join('');
     }
-    function renderEntryList(target, items, type = '', editable = false) {
+    function renderEntryList(target, items, type = '', editable = false, sourceDate = '') {
       $(target).innerHTML = (items || []).length ? items.map((item, index) => {
         const thumbs = entryThumbs(item, `${target}-${index}`);
         return `
           <div class="entry-card">
             <div class="entry-card-head">
               <strong>${index + 1}. ${editable ? '' : '昨日承接'}</strong>
-              ${editable ? `<button class="danger" type="button" data-delete-entry="${type}|${item.id}">删除</button>` : ''}
+              ${editable ? `<button class="danger" type="button" data-delete-entry="${type}|${item.id}|${sourceDate || $('workDate').value}">删除</button>` : ''}
             </div>
             <p>${escapeHtml(item.text || '仅上传截图')}</p>
             ${thumbs ? `<div class="thumb-row">${thumbs}</div>` : ''}
@@ -603,19 +603,26 @@
       }).join('') : '<p class="empty-entry">暂无记录。</p>';
     }
     function renderEntryPanels() {
-      const previous = state.records[prevDate($('workDate').value)];
+      const previousDate = prevDate($('workDate').value);
+      const previous = state.records[previousDate];
       if (previous) normalizeRecord(previous);
       const yesterdayItems = previous?.evening?.unresolvedItems || [];
-      renderEntryList('morningYesterdayEntries', yesterdayItems, '', false);
+      renderEntryList('morningYesterdayEntries', yesterdayItems, 'eveningUnresolved', true, previousDate);
       renderEntryList('morningFollowEntries', record().morning.followItems, 'morningFollow', true);
       renderEntryList('afterSaleHandoffEntries', record().evening.handoffItems, 'afterSaleHandoff', true);
       renderEntryList('eveningUnresolvedEntries', record().evening.unresolvedItems, 'eveningUnresolved', true);
       document.querySelectorAll('[data-delete-entry]').forEach(btn => btn.onclick = e => {
         e.stopPropagation();
-        const [type, id] = btn.dataset.deleteEntry.split('|');
+        const [type, id, date] = btn.dataset.deleteEntry.split('|');
         const cfg = entryConfig(type);
         if (!cfg || !confirm('删除这条记录吗？')) return;
-        const list = cfg.list();
+        const targetDate = date || $('workDate').value;
+        const targetRecord = record(targetDate);
+        const list = type === 'morningFollow'
+          ? targetRecord.morning.followItems
+          : type === 'afterSaleHandoff'
+            ? targetRecord.evening.handoffItems
+            : targetRecord.evening.unresolvedItems;
         const index = list.findIndex(item => String(item.id) === id);
         if (index >= 0) list.splice(index, 1);
         saveState();
