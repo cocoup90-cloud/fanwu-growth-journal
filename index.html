@@ -93,8 +93,9 @@
     .calendar-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
     .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
     .day, .dow { text-align: center; font-size: 12px; color: var(--muted); }
-    .day { min-height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding-top: 8px; }
+    .day { min-height: 36px; border: 1px solid var(--line); border-radius: 8px; background: #fff; padding-top: 8px; position: relative; }
     .day.done { background: var(--soft); color: var(--brand); font-weight: 700; }
+    .calendar-trophy { position: absolute; right: 3px; top: 1px; font-size: 12px; line-height: 1; }
     .bar-row { display: grid; grid-template-columns: 94px 1fr auto; gap: 8px; align-items: center; margin: 9px 0; }
     .bar { height: 12px; background: #eee6da; border-radius: 999px; overflow: hidden; }
     .bar span { display: block; height: 100%; background: var(--brand); border-radius: 999px; }
@@ -112,6 +113,9 @@
     .copy-icon::before, .copy-icon::after { content: ""; position: absolute; width: 10px; height: 10px; border: 2px solid currentColor; border-radius: 3px; background: #fff; }
     .copy-icon::before { left: 1px; top: 5px; }
     .copy-icon::after { left: 5px; top: 1px; background: var(--soft); }
+    .trash-icon { position: relative; width: 16px; height: 16px; display: inline-block; border: 2px solid currentColor; border-top: 0; border-radius: 0 0 3px 3px; }
+    .trash-icon::before { content: ""; position: absolute; left: -3px; top: -5px; width: 20px; height: 2px; background: currentColor; border-radius: 999px; }
+    .trash-icon::after { content: ""; position: absolute; left: 4px; top: -8px; width: 6px; height: 3px; border: 2px solid currentColor; border-bottom: 0; border-radius: 3px 3px 0 0; }
     .copy-main { align-self: end; }
     .inline-edit { display: grid; gap: 8px; margin-top: 6px; }
     .inline-edit textarea { min-height: 90px; color: var(--text); background: #fff; caret-color: var(--text); user-select: text; pointer-events: auto; }
@@ -140,6 +144,12 @@
     .image-modal-tools { display: flex; justify-content: flex-end; }
     .image-modal-close { min-width: 46px; background: #fff; color: var(--text); border: 1px solid var(--line); }
     .image-modal-img { max-width: 100%; max-height: 84vh; object-fit: contain; border-radius: 10px; background: #fff; justify-self: center; }
+    .award-modal { position: fixed; inset: 0; z-index: 101; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(36,31,26,.45); }
+    .award-modal.open { display: flex; }
+    .award-card { width: min(420px, 100%); background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: 22px; text-align: center; }
+    .award-icon { font-size: 54px; line-height: 1; margin-bottom: 10px; }
+    .award-card h2 { margin: 0 0 8px; }
+    .award-card p { color: var(--muted); line-height: 1.7; }
     #morningProgressText, #eveningProgressText,
     #export-morning > .progress-line, #export-evening > .progress-line { display: none; }
     @media (max-width: 720px) {
@@ -402,6 +412,15 @@
     </div>
   </div>
 
+  <div class="award-modal" id="awardModal" aria-hidden="true">
+    <div class="award-card">
+      <div class="award-icon">🏆</div>
+      <h2 id="awardTitle"></h2>
+      <p id="awardText"></p>
+      <button id="closeAwardModal" type="button">开启下一轮</button>
+    </div>
+  </div>
+
   <script>
     const STORE = 'fanwu_growth_journal_v1';
     const noteTypes = [
@@ -458,10 +477,19 @@
 
     function loadState() {
       try {
-        return JSON.parse(localStorage.getItem(STORE)) || { staff: '小可', records: {}, growth: { sales: [], upsell: [], showroom: [] } };
+        return normalizeState(JSON.parse(localStorage.getItem(STORE)) || { staff: '小可', records: {}, growth: { sales: [], upsell: [], showroom: [] } });
       } catch {
-        return { staff: '小可', records: {}, growth: { sales: [], upsell: [], showroom: [] } };
+        return normalizeState({ staff: '小可', records: {}, growth: { sales: [], upsell: [], showroom: [] } });
       }
+    }
+    function normalizeState(data) {
+      data.staff ||= '小可';
+      data.records ||= {};
+      data.growth ||= { sales: [], upsell: [], showroom: [] };
+      data.awards ||= { morning: [], evening: [] };
+      data.awards.morning ||= [];
+      data.awards.evening ||= [];
+      return data;
     }
     function saveState() { localStorage.setItem(STORE, JSON.stringify(state)); }
     function record(date = $('workDate').value) {
@@ -617,6 +645,7 @@
       record()[kind].submitted = true;
       record()[kind].submittedAt = new Date().toISOString();
       saveState();
+      checkAwards(kind);
       renderAll();
       alert(kind === 'morning' ? '早安开工已提交。' : '安心收工已提交。');
     }
@@ -706,18 +735,56 @@
       return days;
     }
     function renderCalendar(kind, target) {
+      const awardDates = new Set((state.awards?.[kind] || []).map(x => x.date));
       const days = monthDays().map(cell => {
         if (typeof cell === 'string') return cell;
         const rec = state.records[cell.date];
         const tasks = kind === 'morning' ? morningTasks : eveningTasks;
         const done = rec ? tasks.every(([id]) => rec[kind]?.done?.[id]) : false;
-        return `<div class="day ${done ? 'done' : ''}">${cell.day}</div>`;
+        const trophy = awardDates.has(cell.date) ? '<span class="calendar-trophy">🏆</span>' : '';
+        return `<div class="day ${done ? 'done' : ''}">${cell.day}${trophy}</div>`;
       });
       $(target).innerHTML = days.join('');
     }
-    function attendanceCount(kind) {
+    function completedDates(kind) {
       const tasks = kind === 'morning' ? morningTasks : eveningTasks;
-      return Object.values(state.records).filter(rec => tasks.every(([id]) => rec[kind]?.done?.[id])).length;
+      return Object.entries(state.records)
+        .filter(([, rec]) => tasks.every(([id]) => rec[kind]?.done?.[id]))
+        .map(([date]) => date)
+        .sort();
+    }
+    function attendanceCount(kind) {
+      return completedDates(kind).length;
+    }
+    function awardName(kind) {
+      return kind === 'morning' ? '上班全勤奖' : '完美收工奖';
+    }
+    function awardCycle(kind) {
+      const awards = state.awards?.[kind] || [];
+      const total = attendanceCount(kind);
+      return { cycle: awards.length + 1, count: Math.max(0, total - awards.length * 14), total };
+    }
+    function checkAwards(kind) {
+      normalizeState(state);
+      const dates = completedDates(kind);
+      const awards = state.awards[kind];
+      while (dates.length >= (awards.length + 1) * 14) {
+        const cycle = awards.length + 1;
+        const award = { cycle, date: dates[cycle * 14 - 1], name: awardName(kind), createdAt: new Date().toISOString() };
+        awards.push(award);
+        saveState();
+        showAwardModal(kind, award);
+      }
+    }
+    function showAwardModal(kind, award) {
+      $('awardTitle').textContent = `获得${award.name}`;
+      $('awardText').textContent = `恭喜完成第 ${award.cycle} 轮 14 天打卡！奖杯已经标记在 ${award.date} 的日历上，下一轮 14 天从 0 开始。`;
+      $('awardModal').classList.add('open');
+      $('awardModal').setAttribute('aria-hidden', 'false');
+    }
+    function closeAwardModal() {
+      $('awardModal').classList.remove('open');
+      $('awardModal').setAttribute('aria-hidden', 'true');
     }
     function ensureNoteMeta() {
       let changed = false;
@@ -742,12 +809,14 @@
         .sort((a, b) => (a.order || 0) - (b.order || 0));
     }
     function renderArchive() {
+      checkAwards('morning');
+      checkAwards('evening');
       renderCalendar('morning', 'morningCalendar');
       renderCalendar('evening', 'eveningCalendar');
-      const mc = attendanceCount('morning');
-      const ec = attendanceCount('evening');
-      $('morningAward').textContent = mc >= 14 ? '上班全勤奖已解锁' : `${mc}/14`;
-      $('eveningAward').textContent = ec >= 14 ? '完美收工奖已解锁' : `${ec}/14`;
+      const mc = awardCycle('morning');
+      const ec = awardCycle('evening');
+      $('morningAward').textContent = `第${mc.cycle}轮 ${mc.count}/14`;
+      $('eveningAward').textContent = `第${ec.cycle}轮 ${ec.count}/14`;
       const notes = allNotes();
       const counts = Object.fromEntries(noteTypes.map(([id]) => [id, 0]));
       notes.forEach(n => counts[n.type] = (counts[n.type] || 0) + 1);
@@ -759,7 +828,7 @@
       $('copyPanels').innerHTML = noteTypes.map(([id, label]) => {
         const rows = notes.filter(n => n.type === id);
         const content = rows.map((n, index) => {
-          const text = `${n.date}｜${n.staff || ''}\n${n.text || '仅上传截图'}`;
+          const text = n.text || '仅上传截图';
           const key = id + '-' + index;
           const noteKey = n.date + '|' + n.id;
           copySnippets[key] = text;
@@ -788,7 +857,9 @@
                 <button class="icon-btn" title="上移" data-move-note="${noteKey}" data-move-dir="-1">▲</button>
                 <button class="icon-btn" title="下移" data-move-note="${noteKey}" data-move-dir="1">▼</button>
                 <button class="icon-btn" title="编辑" data-edit-note="${noteKey}">✎</button>
-                <button class="icon-btn danger" title="删除" data-delete-note="${noteKey}">删</button>
+                <button class="icon-btn danger" title="删除" data-delete-note="${noteKey}" aria-label="删除">
+                  <span class="trash-icon"></span>
+                </button>
               </div>
               <button class="icon-btn copy-main" title="复制" data-copy-key="${key}"><span class="copy-icon"></span></button>
             </div>
@@ -894,13 +965,13 @@
       $('upsellList').innerHTML = state.growth.upsell.map(x => `<div class="history-card"><strong>${x.date}｜${x.type}</strong><p>淘宝用户：${x.user} ${x.note || ''}</p></div>`).join('') || '<p class="hint">还没有连带销售记录。</p>';
       $('showroomList').innerHTML = state.growth.showroom.map(x => `<div class="history-card"><strong>${x.date}｜${x.user} <span class="stars">${'★'.repeat(Number(x.stars[0] || 5))}</span></strong><p>看过产品：${x.products || '未填'}</p></div>`).join('') || '<p class="hint">还没有展厅体验记录。</p>';
     }
-    function exportCard(kind) {
+    async function exportCard(kind) {
       saveInputs();
       const canvas = document.createElement('canvas');
-      canvas.width = 900; canvas.height = 920;
+      canvas.width = 900; canvas.height = 1200;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#f6f2eb'; ctx.fillRect(0,0,900,920);
-      round(ctx, 35, 35, 830, 850, 18, '#fffaf2');
+      ctx.fillStyle = '#f6f2eb'; ctx.fillRect(0,0,900,1200);
+      round(ctx, 35, 35, 830, 1130, 18, '#fffaf2');
       ctx.fillStyle = '#241f1a'; ctx.font = 'bold 34px Microsoft YaHei';
       const title = kind === 'morning' ? '早安开工' : kind === 'evening' ? '安心收工' : '毕业进度';
       ctx.fillText('凡屋客服日循环记录｜' + title, 62, 92);
@@ -922,13 +993,71 @@
         y += 18;
         const previous = state.records[prevDate($('workDate').value)];
         if (previous) normalizeRecord(previous);
-        const extra = kind === 'morning'
-          ? '昨日未落实：\n' + entrySummary(previous?.evening?.unresolvedItems || [], '昨天没有记录未落实问题。') + '\n今日跟进：\n' + entrySummary(record().morning.followItems, '无跟进备注')
-          : '售后交接：\n' + entrySummary(record().evening.handoffItems, '无交接内容') + '\n今日未落实：\n' + entrySummary(record().evening.unresolvedItems, '无未落实问题');
-        ctx.font = '18px Microsoft YaHei'; ctx.fillStyle = '#756b60'; y = wrap(ctx, extra || '无补充记录', 62, y, 760, 30);
+        if (kind === 'morning') {
+          y = await drawEntrySection(ctx, '昨日未落实', previous?.evening?.unresolvedItems || [], y, '昨天没有记录未落实问题。');
+          y = await drawEntrySection(ctx, '今日跟进', record().morning.followItems, y + 10, '无跟进备注');
+        } else {
+          y = await drawEntrySection(ctx, '售后交接', record().evening.handoffItems, y, '无交接内容');
+          y = await drawEntrySection(ctx, '今日未落实', record().evening.unresolvedItems, y + 10, '无未落实问题');
+        }
       }
-      ctx.font = '16px Microsoft YaHei'; ctx.fillStyle = '#756b60'; ctx.fillText('导出后上传到飞书', 62, 850);
+      ctx.font = '16px Microsoft YaHei'; ctx.fillStyle = '#756b60'; ctx.fillText('导出后上传到飞书', 62, 1120);
       download(canvas, `${title}-${$('workDate').value}.jpg`);
+    }
+    function loadCanvasImage(src) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+      });
+    }
+    function drawCoverImage(ctx, img, x, y, w, h) {
+      const scale = Math.max(w / img.width, h / img.height);
+      const sw = w / scale;
+      const sh = h / scale;
+      const sx = (img.width - sw) / 2;
+      const sy = (img.height - sh) / 2;
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+    }
+    async function drawEntrySection(ctx, title, items, y, emptyText) {
+      ctx.font = 'bold 20px Microsoft YaHei';
+      ctx.fillStyle = '#241f1a';
+      ctx.fillText(title + '：', 62, y);
+      y += 30;
+      if (!items.length) {
+        ctx.font = '18px Microsoft YaHei';
+        ctx.fillStyle = '#756b60';
+        ctx.fillText(emptyText, 62, y);
+        return y + 34;
+      }
+      for (let i = 0; i < items.length && y < 1050; i++) {
+        const item = items[i];
+        ctx.font = '18px Microsoft YaHei';
+        ctx.fillStyle = '#756b60';
+        y = wrap(ctx, `${i + 1}. ${item.text || '仅上传截图'}`, 62, y, 760, 28);
+        const images = (item.images || []).slice(0, 3);
+        if (images.length) {
+          let x = 82;
+          for (const src of images) {
+            const img = await loadCanvasImage(src);
+            if (img) {
+              round(ctx, x - 2, y - 2, 78, 78, 8, '#ffffff');
+              drawCoverImage(ctx, img, x, y, 74, 74);
+            }
+            x += 88;
+          }
+          y += 90;
+        }
+        y += 8;
+      }
+      if (items.length && y >= 1050) {
+        ctx.font = '18px Microsoft YaHei';
+        ctx.fillStyle = '#756b60';
+        ctx.fillText('后续内容较多，已在页面中完整保存。', 62, y);
+        y += 32;
+      }
+      return y;
     }
     function round(ctx, x, y, w, h, r, fill) {
       ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
@@ -980,11 +1109,13 @@
         const data = parsed.data || parsed;
         if (!data || typeof data !== 'object' || !data.records || !data.growth) return alert('这个 JSON 不是有效的日循环数据。');
         if (!confirm('导入后会覆盖这台设备当前浏览器里的全部记录，确定继续吗？')) return;
-        state = {
+        state = normalizeState({
           staff: data.staff || '小可',
           records: data.records || {},
           growth: data.growth || { sales: [], upsell: [], showroom: [] }
-        };
+        });
+        state.awards = data.awards || state.awards;
+        normalizeState(state);
         Object.values(state.records).forEach(normalizeRecord);
         saveState();
         $('staffName').value = state.staff || '小可';
@@ -1068,10 +1199,10 @@
         text = `工作随手记｜今日 ${count} 条`;
         value = Math.min(100, count * 20);
       } else if (currentView === 'archive') {
-        const morning = attendanceCount('morning');
-        const evening = attendanceCount('evening');
-        text = `成长档案｜开工 ${morning}/14｜收工 ${evening}/14`;
-        value = Math.min(100, Math.round((morning + evening) / 28 * 100));
+        const morning = awardCycle('morning');
+        const evening = awardCycle('evening');
+        text = `成长档案｜开工第${morning.cycle}轮 ${morning.count}/14｜收工第${evening.cycle}轮 ${evening.count}/14`;
+        value = Math.min(100, Math.round((morning.count + evening.count) / 28 * 100));
       } else if (currentView === 'growth') {
         const done = graduationDoneCount();
         text = `毕业进度｜${done} / 3`;
@@ -1114,6 +1245,8 @@
     };
     $('closeImageModal').onclick = closeImageModal;
     $('imageModal').onclick = e => { if (e.target.id === 'imageModal') closeImageModal(); };
+    $('closeAwardModal').onclick = closeAwardModal;
+    $('awardModal').onclick = e => { if (e.target.id === 'awardModal') closeAwardModal(); };
     document.addEventListener('click', e => {
       const btn = e.target.closest('[data-open-image]');
       if (!btn) return;
