@@ -66,12 +66,28 @@
     .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .field { display: grid; gap: 6px; }
     .field label { color: var(--muted); font-size: 13px; }
+    .entry-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+    .entry-section { background: #fffdf8; border: 1px solid var(--line); border-radius: 8px; padding: 10px; display: grid; gap: 8px; }
+    .entry-section h4 { margin: 0; font-size: 15px; }
+    .entry-form { display: grid; gap: 8px; }
+    .entry-form textarea { min-height: 72px; }
+    .entry-card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 9px; display: grid; gap: 6px; }
+    .entry-card p { margin: 0; color: var(--muted); line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+    .entry-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .entry-card-head strong { font-size: 14px; }
+    .entry-card-head button { min-height: 28px; padding: 3px 8px; }
+    .empty-entry { color: var(--muted); line-height: 1.65; margin: 0; }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
     .actions button { flex: 1; min-width: 145px; }
     .view > .actions { position: sticky; bottom: 0; z-index: 8; background: rgba(246,242,235,.96); backdrop-filter: blur(8px); border-top: 1px solid var(--line); padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); margin-bottom: -1px; }
     .note-type-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
     .image-preview { display: flex; gap: 8px; overflow-x: auto; margin-top: 8px; }
     .image-preview img { width: 78px; height: 78px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: #fff; }
+    .preview-wrap { position: relative; flex: 0 0 auto; }
+    .preview-wrap button { position: absolute; right: 4px; top: 4px; min-height: 24px; padding: 2px 6px; border-radius: 999px; background: rgba(36,31,26,.78); color: #fff; font-size: 12px; }
+    .thumb-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+    .thumb-btn { width: 70px; height: 70px; min-height: 70px; padding: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #fff; }
+    .thumb-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .note-card, .history-card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 11px; display: grid; gap: 6px; }
     .note-card p, .history-card p { margin: 0; color: var(--muted); line-height: 1.65; white-space: pre-wrap; }
     .calendar-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -118,13 +134,19 @@
     .date-day.muted { opacity: .35; }
     .date-day.today { border-color: var(--brand); color: var(--brand); }
     .date-day.selected { background: var(--text); color: #fff; border-color: var(--text); }
+    .image-modal { position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(36,31,26,.72); }
+    .image-modal.open { display: flex; }
+    .image-modal-panel { width: min(920px, 100%); max-height: 92vh; display: grid; gap: 10px; }
+    .image-modal-tools { display: flex; justify-content: flex-end; }
+    .image-modal-close { min-width: 46px; background: #fff; color: var(--text); border: 1px solid var(--line); }
+    .image-modal-img { max-width: 100%; max-height: 84vh; object-fit: contain; border-radius: 10px; background: #fff; justify-self: center; }
     #morningProgressText, #eveningProgressText,
     #export-morning > .progress-line, #export-evening > .progress-line { display: none; }
     @media (max-width: 720px) {
       .app { padding: 12px; padding-bottom: 78px; }
       .hero { grid-template-columns: 1fr; }
       .quick-meta { grid-template-columns: minmax(0, 1fr) minmax(88px, 112px); }
-      .field-grid, .calendar-pair, .note-type-grid, .record-row { grid-template-columns: 1fr; }
+      .field-grid, .entry-grid, .calendar-pair, .note-type-grid, .record-row { grid-template-columns: 1fr; }
       .task { grid-template-columns: auto 1fr; }
       .task .tag { grid-column: 2 / -1; justify-self: start; }
       .copy-item { grid-template-columns: 1fr; }
@@ -157,6 +179,7 @@
         <button class="tab" data-view="notes">工作随手记</button>
         <button class="tab" data-view="archive">成长档案</button>
         <button class="tab" data-view="growth">毕业进度</button>
+        <button class="tab" data-view="sync">数据同步</button>
       </nav>
       <div class="sticky-status" id="stickyStatus">
         <div class="sticky-status-text" id="stickyStatusText"></div>
@@ -173,14 +196,20 @@
           <div id="morningProgressText"></div>
           <div class="progress-line"><span id="morningProgress"></span></div>
           <div class="task-list" id="morningTasks"></div>
-          <div class="field-grid">
-            <div class="field">
-              <label>昨日未落实问题</label>
-              <textarea id="morningYesterday" readonly></textarea>
+          <div class="entry-grid">
+            <div class="entry-section">
+              <h4>昨日未落实问题</h4>
+              <div id="morningYesterdayEntries"></div>
             </div>
-            <div class="field">
-              <label>今日跟进备注</label>
-              <textarea id="morningFollow" placeholder="例：昨晚供应链未回复的库存问题，今天 10:00 前再次确认；高意向客户先发新品搭配图，再跟进是否下单。"></textarea>
+            <div class="entry-section">
+              <h4>今日跟进备注</h4>
+              <div id="morningFollowEntries"></div>
+              <div class="entry-form">
+                <textarea id="morningFollowText" placeholder="例：昨晚供应链未回复的库存问题，今天 10:00 前再次确认；高意向客户先发新品搭配图，再跟进是否下单。"></textarea>
+                <input type="file" id="morningFollowImages" accept="image/*" multiple />
+                <div class="image-preview" id="morningFollowPreview"></div>
+                <button class="secondary" type="button" data-add-entry="morningFollow">添加跟进条目</button>
+              </div>
             </div>
           </div>
         </div>
@@ -198,14 +227,26 @@
           <div id="eveningProgressText"></div>
           <div class="progress-line"><span id="eveningProgress"></span></div>
           <div class="task-list" id="eveningTasks"></div>
-          <div class="field-grid">
-            <div class="field">
-              <label>售后交接内容</label>
-              <textarea id="afterSaleHandoff" placeholder="例：售后 21:30 前转来 2 个需要售前继续解释的客户，一个问换色周期，一个问补差价方案。"></textarea>
+          <div class="entry-grid">
+            <div class="entry-section">
+              <h4>售后交接内容</h4>
+              <div id="afterSaleHandoffEntries"></div>
+              <div class="entry-form">
+                <textarea id="afterSaleHandoffText" placeholder="例：售后 21:30 前转来 1 个需要售前继续解释的客户，用户问换色周期和补差价方案。"></textarea>
+                <input type="file" id="afterSaleHandoffImages" accept="image/*" multiple />
+                <div class="image-preview" id="afterSaleHandoffPreview"></div>
+                <button class="secondary" type="button" data-add-entry="afterSaleHandoff">添加交接条目</button>
+              </div>
             </div>
-            <div class="field">
-              <label>今日未落实问题</label>
-              <textarea id="eveningUnresolved" placeholder="例：1. 月见镜柜库存待供应链确认；2. 高意向客户 A 明早继续跟进；3. 餐边柜发货周期待确认。"></textarea>
+            <div class="entry-section">
+              <h4>今日未落实问题</h4>
+              <div id="eveningUnresolvedEntries"></div>
+              <div class="entry-form">
+                <textarea id="eveningUnresolvedText" placeholder="例：月见镜柜库存待供应链确认；高意向客户 A 明早继续跟进；餐边柜发货周期待确认。"></textarea>
+                <input type="file" id="eveningUnresolvedImages" accept="image/*" multiple />
+                <div class="image-preview" id="eveningUnresolvedPreview"></div>
+                <button class="secondary" type="button" data-add-entry="eveningUnresolved">添加未落实条目</button>
+              </div>
             </div>
           </div>
         </div>
@@ -225,7 +266,7 @@
               <select id="noteType"></select>
             </div>
             <div class="field">
-              <label>截图记录</label>
+              <label>截图记录（最多 3 张，可分多次添加）</label>
               <input type="file" id="noteImages" accept="image/*" multiple />
             </div>
           </div>
@@ -317,6 +358,26 @@
           <button class="ghost" id="exportGrowth">导出毕业进度图</button>
         </div>
       </section>
+      <section class="view" id="view-sync">
+        <div class="panel">
+          <h2>数据同步</h2>
+          <p class="hint">当前记录保存在本机浏览器里。换手机或电脑时，先在旧设备导出全部数据，再到新设备导入并覆盖本机数据。</p>
+          <div class="notice">导出的 JSON 包含打卡、随手记、图片和毕业进度。图片越多，文件会越大。</div>
+          <div class="field-grid">
+            <div class="entry-section">
+              <h4>从这台设备导出</h4>
+              <p class="empty-entry">把当前浏览器里的全部记录保存成一个 JSON 文件。</p>
+              <button id="exportAllData" type="button">导出全部数据</button>
+            </div>
+            <div class="entry-section">
+              <h4>导入到这台设备</h4>
+              <p class="empty-entry">选择之前导出的 JSON。导入会覆盖这台设备当前浏览器里的记录。</p>
+              <input type="file" id="importAllDataFile" accept="application/json,.json" />
+              <button class="danger" id="importAllData" type="button">导入并覆盖本机数据</button>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -329,6 +390,15 @@
         <button class="date-close" id="closeDateModal" type="button">关</button>
       </div>
       <div class="date-grid" id="dateModalGrid"></div>
+    </div>
+  </div>
+
+  <div class="image-modal" id="imageModal" aria-hidden="true">
+    <div class="image-modal-panel">
+      <div class="image-modal-tools">
+        <button class="image-modal-close" id="closeImageModal" type="button">关</button>
+      </div>
+      <img class="image-modal-img" id="imageModalImg" alt="截图大图" />
     </div>
   </div>
 
@@ -383,6 +453,8 @@
     let editingNoteKey = '';
     let currentView = 'morning';
     let datePickerCursor = null;
+    let previewImages = {};
+    let pendingEntryImages = { morningFollow: [], afterSaleHandoff: [], eveningUnresolved: [] };
 
     function loadState() {
       try {
@@ -394,12 +466,25 @@
     function saveState() { localStorage.setItem(STORE, JSON.stringify(state)); }
     function record(date = $('workDate').value) {
       if (!state.records[date]) state.records[date] = { morning: { done: {}, follow: '', submitted: false }, evening: { done: {}, handoff: '', unresolved: '', submitted: false }, notes: [] };
+      normalizeRecord(state.records[date]);
       return state.records[date];
+    }
+    function textToEntry(text, key) {
+      const clean = String(text || '').trim();
+      return clean ? [{ id: key + '-' + Date.now(), text: clean, images: [], createdAt: new Date().toISOString() }] : [];
+    }
+    function normalizeRecord(rec) {
+      rec.morning ||= { done: {}, follow: '', submitted: false };
+      rec.evening ||= { done: {}, handoff: '', unresolved: '', submitted: false };
+      rec.notes ||= [];
+      if (!Array.isArray(rec.morning.followItems)) rec.morning.followItems = textToEntry(rec.morning.follow, 'follow');
+      if (!Array.isArray(rec.evening.handoffItems)) rec.evening.handoffItems = textToEntry(rec.evening.handoff, 'handoff');
+      if (!Array.isArray(rec.evening.unresolvedItems)) rec.evening.unresolvedItems = textToEntry(rec.evening.unresolved, 'unresolved');
     }
     function prevDate(date) {
       const d = fmtDate(date);
       d.setDate(d.getDate() - 1);
-      return d.toISOString().slice(0, 10);
+      return localDateValue(d);
     }
     function activeStaff() { return $('staffName').value; }
     function setView(view) {
@@ -431,20 +516,99 @@
     }
     function loadDate(date) {
       $('workDate').value = date;
-      const rec = record(date);
-      $('morningFollow').value = rec.morning.follow || '';
-      $('afterSaleHandoff').value = rec.evening.handoff || '';
-      $('eveningUnresolved').value = rec.evening.unresolved || '';
-      $('morningYesterday').value = (state.records[prevDate(date)]?.evening?.unresolved || '昨天没有记录未落实问题。');
+      record(date);
       renderAll();
     }
     function saveInputs() {
-      const rec = record();
-      rec.morning.follow = $('morningFollow').value.trim();
-      rec.evening.handoff = $('afterSaleHandoff').value.trim();
-      rec.evening.unresolved = $('eveningUnresolved').value.trim();
       state.staff = activeStaff();
       saveState();
+    }
+    function entryConfig(type) {
+      return {
+        morningFollow: { target: 'morningFollowEntries', text: 'morningFollowText', images: 'morningFollowImages', list: () => record().morning.followItems, title: '跟进备注' },
+        afterSaleHandoff: { target: 'afterSaleHandoffEntries', text: 'afterSaleHandoffText', images: 'afterSaleHandoffImages', list: () => record().evening.handoffItems, title: '交接内容' },
+        eveningUnresolved: { target: 'eveningUnresolvedEntries', text: 'eveningUnresolvedText', images: 'eveningUnresolvedImages', list: () => record().evening.unresolvedItems, title: '未落实问题' }
+      }[type];
+    }
+    function entryPreviewId(type) { return type === 'morningFollow' ? 'morningFollowPreview' : type === 'afterSaleHandoff' ? 'afterSaleHandoffPreview' : 'eveningUnresolvedPreview'; }
+    async function handleEntryImages(type, files) {
+      const slots = Math.max(0, 3 - pendingEntryImages[type].length);
+      const selected = [...files].slice(0, slots);
+      if (!selected.length) {
+        alert('每条最多添加 3 张截图。');
+        $(entryConfig(type).images).value = '';
+        return;
+      }
+      for (const file of selected) pendingEntryImages[type].push(await readAsDataUrl(file));
+      if (files.length > slots) alert('每条最多添加 3 张截图，超出的图片没有加入。');
+      renderEntryPendingImages(type);
+      $(entryConfig(type).images).value = '';
+    }
+    function renderEntryPendingImages(type) {
+      $(entryPreviewId(type)).innerHTML = pendingEntryImages[type].map((src, index) => `<span class="preview-wrap"><img src="${src}" alt="截图"><button type="button" data-remove-entry-pending="${type}|${index}">删</button></span>`).join('');
+      document.querySelectorAll('[data-remove-entry-pending]').forEach(btn => btn.onclick = () => {
+        const [entryType, index] = btn.dataset.removeEntryPending.split('|');
+        pendingEntryImages[entryType].splice(Number(index), 1);
+        renderEntryPendingImages(entryType);
+      });
+    }
+    function entryThumbs(item, prefix) {
+      return (item.images || []).map((src, imgIndex) => {
+        const imageKey = `${prefix}-${item.id}-${imgIndex}`;
+        previewImages[imageKey] = src;
+        return `<button class="thumb-btn" type="button" data-open-image="${imageKey}" title="查看大图"><img src="${src}" alt="截图缩略图"></button>`;
+      }).join('');
+    }
+    function renderEntryList(target, items, type = '', editable = false) {
+      $(target).innerHTML = (items || []).length ? items.map((item, index) => {
+        const thumbs = entryThumbs(item, `${target}-${index}`);
+        return `
+          <div class="entry-card">
+            <div class="entry-card-head">
+              <strong>${index + 1}. ${editable ? '' : '昨日承接'}</strong>
+              ${editable ? `<button class="danger" type="button" data-delete-entry="${type}|${item.id}">删除</button>` : ''}
+            </div>
+            <p>${escapeHtml(item.text || '仅上传截图')}</p>
+            ${thumbs ? `<div class="thumb-row">${thumbs}</div>` : ''}
+          </div>
+        `;
+      }).join('') : '<p class="empty-entry">暂无记录。</p>';
+    }
+    function renderEntryPanels() {
+      const previous = state.records[prevDate($('workDate').value)];
+      if (previous) normalizeRecord(previous);
+      const yesterdayItems = previous?.evening?.unresolvedItems || [];
+      renderEntryList('morningYesterdayEntries', yesterdayItems, '', false);
+      renderEntryList('morningFollowEntries', record().morning.followItems, 'morningFollow', true);
+      renderEntryList('afterSaleHandoffEntries', record().evening.handoffItems, 'afterSaleHandoff', true);
+      renderEntryList('eveningUnresolvedEntries', record().evening.unresolvedItems, 'eveningUnresolved', true);
+      document.querySelectorAll('[data-delete-entry]').forEach(btn => btn.onclick = e => {
+        e.stopPropagation();
+        const [type, id] = btn.dataset.deleteEntry.split('|');
+        const cfg = entryConfig(type);
+        if (!cfg || !confirm('删除这条记录吗？')) return;
+        const list = cfg.list();
+        const index = list.findIndex(item => String(item.id) === id);
+        if (index >= 0) list.splice(index, 1);
+        saveState();
+        renderAll();
+      });
+    }
+    async function addEntry(type) {
+      const cfg = entryConfig(type);
+      const text = $(cfg.text).value.trim();
+      const images = [...pendingEntryImages[type]];
+      if (!text && !images.length) return alert('请先填写文字或上传截图。');
+      cfg.list().push({ id: Date.now(), text, images, createdAt: new Date().toISOString() });
+      $(cfg.text).value = '';
+      $(cfg.images).value = '';
+      pendingEntryImages[type] = [];
+      renderEntryPendingImages(type);
+      saveState();
+      renderAll();
+    }
+    function entrySummary(items, emptyText = '无记录') {
+      return (items || []).length ? items.map((item, index) => `${index + 1}. ${item.text || '仅上传截图'}${(item.images || []).length ? `（${item.images.length}张截图）` : ''}`).join('\n') : emptyText;
     }
     function submitKind(kind, tasks) {
       saveInputs();
@@ -459,6 +623,7 @@
     function renderMorningEvening() {
       renderTaskList('morning', morningTasks, 'morningTasks');
       renderTaskList('evening', eveningTasks, 'eveningTasks');
+      renderEntryPanels();
       const m = percent('morning', morningTasks);
       const e = percent('evening', eveningTasks);
       $('morningProgressText').innerHTML = `<strong>${m.count} / ${m.total}</strong> · ${m.value}% 完成`;
@@ -467,9 +632,24 @@
       $('eveningProgress').style.width = e.value + '%';
     }
     async function handleImages(files) {
-      pendingImages = [];
-      for (const file of [...files].slice(0, 3)) pendingImages.push(await readAsDataUrl(file));
-      $('notePreview').innerHTML = pendingImages.map(src => `<img src="${src}" alt="截图">`).join('');
+      const slots = Math.max(0, 3 - pendingImages.length);
+      const selected = [...files].slice(0, slots);
+      if (!selected.length) {
+        alert('这条小记最多添加 3 张截图。');
+        $('noteImages').value = '';
+        return;
+      }
+      for (const file of selected) pendingImages.push(await readAsDataUrl(file));
+      if (files.length > slots) alert('这条小记最多添加 3 张截图，超出的图片没有加入。');
+      renderPendingImages();
+      $('noteImages').value = '';
+    }
+    function renderPendingImages() {
+      $('notePreview').innerHTML = pendingImages.map((src, index) => `<span class="preview-wrap"><img src="${src}" alt="截图"><button type="button" data-remove-pending="${index}">删</button></span>`).join('');
+      document.querySelectorAll('[data-remove-pending]').forEach(btn => btn.onclick = () => {
+        pendingImages.splice(Number(btn.dataset.removePending), 1);
+        renderPendingImages();
+      });
     }
     function readAsDataUrl(file) {
       return new Promise((resolve, reject) => {
@@ -499,11 +679,15 @@
     }
     function renderNotes() {
       const notes = record().notes || [];
-      $('todayNotes').innerHTML = notes.map(n => `
+      $('todayNotes').innerHTML = notes.map((n, noteIndex) => `
         <div class="note-card">
           <strong>${n.label}</strong>
           <p>${escapeHtml(n.text || '仅上传截图')}</p>
-          <div class="image-preview">${(n.images || []).map(src => `<img src="${src}" alt="截图">`).join('')}</div>
+          <div class="thumb-row">${(n.images || []).map((src, imgIndex) => {
+            const imageKey = `today-${noteIndex}-${imgIndex}`;
+            previewImages[imageKey] = src;
+            return `<button class="thumb-btn" type="button" data-open-image="${imageKey}" title="查看大图"><img src="${src}" alt="截图缩略图"></button>`;
+          }).join('')}</div>
         </div>
       `).join('') || '<p class="hint">今天还没有随手记。</p>';
     }
@@ -580,6 +764,11 @@
           const noteKey = n.date + '|' + n.id;
           copySnippets[key] = text;
           const isEditing = editingNoteKey === noteKey;
+          const thumbs = (n.images || []).map((src, imgIndex) => {
+            const imageKey = `archive-${noteKey}-${imgIndex}`;
+            previewImages[imageKey] = src;
+            return `<button class="thumb-btn" type="button" data-open-image="${imageKey}" title="查看大图"><img src="${src}" alt="截图缩略图"></button>`;
+          }).join('');
           return `<div class="copy-item">
             <div>
               <strong>${n.date}｜${escapeHtml(n.staff || '')}</strong>
@@ -592,6 +781,7 @@
                   </div>
                 </div>
               ` : `<p data-edit-note="${noteKey}" title="点击编辑">${escapeHtml(n.text || '仅上传截图')}</p>`}
+              ${thumbs ? `<div class="thumb-row">${thumbs}</div>` : ''}
             </div>
             <div class="copy-tools">
               <div class="copy-actions">
@@ -730,7 +920,11 @@
         ctx.font = 'bold 26px Microsoft YaHei'; ctx.fillStyle = '#2f6f65'; ctx.fillText(`完成度：${p.count}/${p.total} · ${p.value}%`, 62, y); y += 50;
         tasks.forEach(([id, title]) => { ctx.font = '20px Microsoft YaHei'; ctx.fillStyle = '#241f1a'; ctx.fillText((record()[kind].done[id] ? '✓ ' : '□ ') + title, 62, y); y += 36; });
         y += 18;
-        const extra = kind === 'morning' ? $('morningFollow').value : '售后交接：' + $('afterSaleHandoff').value + '\n未落实：' + $('eveningUnresolved').value;
+        const previous = state.records[prevDate($('workDate').value)];
+        if (previous) normalizeRecord(previous);
+        const extra = kind === 'morning'
+          ? '昨日未落实：\n' + entrySummary(previous?.evening?.unresolvedItems || [], '昨天没有记录未落实问题。') + '\n今日跟进：\n' + entrySummary(record().morning.followItems, '无跟进备注')
+          : '售后交接：\n' + entrySummary(record().evening.handoffItems, '无交接内容') + '\n今日未落实：\n' + entrySummary(record().evening.unresolvedItems, '无未落实问题');
         ctx.font = '18px Microsoft YaHei'; ctx.fillStyle = '#756b60'; y = wrap(ctx, extra || '无补充记录', 62, y, 760, 30);
       }
       ctx.font = '16px Microsoft YaHei'; ctx.fillStyle = '#756b60'; ctx.fillText('导出后上传到飞书', 62, 850);
@@ -752,6 +946,54 @@
     }
     function download(canvas, name) {
       const a = document.createElement('a'); a.href = canvas.toDataURL('image/jpeg', .92); a.download = name; a.click();
+    }
+    function downloadJson(data, name) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    function exportAllData() {
+      saveInputs();
+      downloadJson({
+        app: 'fanwu-growth-journal',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: state
+      }, `凡屋客服日循环数据-${today()}.json`);
+    }
+    function readTextFile(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsText(file, 'utf-8');
+      });
+    }
+    async function importAllData() {
+      const file = $('importAllDataFile').files[0];
+      if (!file) return alert('请先选择要导入的 JSON 文件。');
+      try {
+        const parsed = JSON.parse(await readTextFile(file));
+        const data = parsed.data || parsed;
+        if (!data || typeof data !== 'object' || !data.records || !data.growth) return alert('这个 JSON 不是有效的日循环数据。');
+        if (!confirm('导入后会覆盖这台设备当前浏览器里的全部记录，确定继续吗？')) return;
+        state = {
+          staff: data.staff || '小可',
+          records: data.records || {},
+          growth: data.growth || { sales: [], upsell: [], showroom: [] }
+        };
+        Object.values(state.records).forEach(normalizeRecord);
+        saveState();
+        $('staffName').value = state.staff || '小可';
+        $('importAllDataFile').value = '';
+        loadDate($('workDate').value || today());
+        alert('导入完成。');
+      } catch {
+        alert('导入失败，请确认文件是之前导出的 JSON。');
+      }
     }
     function escapeHtml(text) { return String(text || '').replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
     function graduationDoneCount() {
@@ -798,6 +1040,18 @@
       datePickerCursor.setMonth(datePickerCursor.getMonth() + step);
       renderDateModal();
     }
+    function openImageModal(key) {
+      const src = previewImages[key];
+      if (!src) return;
+      $('imageModalImg').src = src;
+      $('imageModal').classList.add('open');
+      $('imageModal').setAttribute('aria-hidden', 'false');
+    }
+    function closeImageModal() {
+      $('imageModal').classList.remove('open');
+      $('imageModal').setAttribute('aria-hidden', 'true');
+      $('imageModalImg').src = '';
+    }
     function updateStickyStatus() {
       let text = '';
       let value = 0;
@@ -818,17 +1072,21 @@
         const evening = attendanceCount('evening');
         text = `成长档案｜开工 ${morning}/14｜收工 ${evening}/14`;
         value = Math.min(100, Math.round((morning + evening) / 28 * 100));
-      } else {
+      } else if (currentView === 'growth') {
         const done = graduationDoneCount();
         text = `毕业进度｜${done} / 3`;
         value = Math.round(done / 3 * 100);
+      } else {
+        const totalDays = Object.keys(state.records || {}).length;
+        text = `数据同步｜已记录 ${totalDays} 天`;
+        value = Math.min(100, totalDays * 5);
       }
       $('stickyStatusText').textContent = text;
       $('stickyProgress').style.width = value + '%';
     }
     function renderAll() {
+      previewImages = {};
       $('datePill').textContent = new Date($('workDate').value + 'T00:00:00').toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' });
-      $('morningYesterday').value = state.records[prevDate($('workDate').value)]?.evening?.unresolved || '昨天没有记录未落实问题。';
       renderMorningEvening();
       renderNotes();
       renderArchive();
@@ -854,14 +1112,28 @@
         closeDateModal();
       }
     };
+    $('closeImageModal').onclick = closeImageModal;
+    $('imageModal').onclick = e => { if (e.target.id === 'imageModal') closeImageModal(); };
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('[data-open-image]');
+      if (!btn) return;
+      e.stopPropagation();
+      openImageModal(btn.dataset.openImage);
+    });
     $('staffName').onchange = () => { state.staff = activeStaff(); saveState(); renderAll(); };
     $('workDate').onchange = e => loadDate(e.target.value);
-    ['morningFollow','afterSaleHandoff','eveningUnresolved'].forEach(id => $(id).oninput = saveInputs);
+    document.querySelectorAll('[data-add-entry]').forEach(btn => btn.onclick = () => addEntry(btn.dataset.addEntry));
+    ['morningFollow','afterSaleHandoff','eveningUnresolved'].forEach(type => {
+      const cfg = entryConfig(type);
+      $(cfg.images).onchange = e => handleEntryImages(type, e.target.files);
+    });
     $('submitMorning').onclick = () => submitKind('morning', morningTasks);
     $('submitEvening').onclick = () => submitKind('evening', eveningTasks);
     $('exportMorning').onclick = () => exportCard('morning');
     $('exportEvening').onclick = () => exportCard('evening');
     $('exportGrowth').onclick = () => exportCard('growth');
+    $('exportAllData').onclick = exportAllData;
+    $('importAllData').onclick = importAllData;
     $('noteType').onchange = () => $('noteText').placeholder = noteTypes.find(n => n[0] === $('noteType').value)[2];
     $('noteImages').onchange = e => handleImages(e.target.files);
     $('addNote').onclick = addNote;
